@@ -20,9 +20,16 @@ public class Term {
     private long currentTerm = 0;
 
     /**
-     * 当前任期内投票给了谁
+     * 当前任期内投票给了谁，0表示没有投票
      */
     private long votedFor = 0;
+
+    /**
+     * 当前任期的leaderId。
+     * 0：还没有Leader
+     * -1：自己就是Leader
+     */
+    private long leaderId = 0;
 
     /**
      * 当前任期内收到的命令
@@ -38,9 +45,6 @@ public class Term {
      * 最后一个命令的索引
      */
     private long logIndex = 0;
-
-
-
 
     /**
      * 任期增加

@@ -6,5 +6,7 @@ package com.zmm.zraft.service;
  */
 public interface INodeService {
 
+    void startElection();
 
+    void sent();
 }

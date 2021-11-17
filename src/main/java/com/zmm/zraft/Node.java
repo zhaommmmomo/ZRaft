@@ -24,6 +24,13 @@ public class Node {
      */
     private Term term;
 
+    public long getId() {
+        return id;
+    }
+
+    public void addTerm() {
+        term.addCurrentTerm();
+    }
 
     public long getCurrentTerm() {
         return term.getCurrentTerm();
@@ -31,6 +38,18 @@ public class Node {
 
     public long getVotedFor() {
         return term.getVotedFor();
+    }
+
+    public void setVotedFor(long votedFor) {
+        term.setVotedFor(votedFor);
+    }
+
+    public long getLeaderId() {
+        return term.getLeaderId();
+    }
+
+    public void setLeaderId(long leaderId) {
+        term.setLeaderId(leaderId);
     }
 
     public long getCommitIndex() {
@@ -47,6 +66,10 @@ public class Node {
 
     public NodeState getNodeState() {
         return nodeState;
+    }
+
+    public void setNodeState(NodeState nodeState) {
+        this.nodeState = nodeState;
     }
 
     public enum NodeState {

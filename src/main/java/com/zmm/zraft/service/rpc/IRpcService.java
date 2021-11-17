@@ -1,4 +1,4 @@
-package com.zmm.zraft.rpc;
+package com.zmm.zraft.service.rpc;
 
 /**
  * @author zmm
