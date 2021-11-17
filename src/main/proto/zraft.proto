@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.zmm.zraft.gRpc";
+
+service IZRaftService {
+    rpc requestVote (VoteRequest) returns (ZRaftResponse) {}
+    rpc appendEntries (AppendRequest) returns (ZRaftResponse) {}
+}
+//定义消息类型
+message VoteRequest {
+    // candidate任期
+    int64 term = 1;
+    // candidateId
+    int64 candidateId = 2;
+    // candidate最后日志条目的索引
+    int64 lastLogIndex = 3;
+    // candidate最后日志条目的任期号
+    int32 lastLogTerm = 4;
+}
+message AppendRequest {
+    // leader任期
+    int64 term = 1;
+    // leaderId
+    int64 leaderId = 2;
+    // 新日志条目之前的索引
+    int64 preLogIndex = 3;
+    // 新日志条目之前的日志任期
+    int32 preLogTerm = 4;
+    // 需要保存的日志条目，当内容为空时，是心跳包
+    repeated OperationLog entries = 5;
+    // leader已提交的日志条目
+    int64 leaderCommit = 6;
+}
+message OperationLog {
+    // 某一任期内的操作数组
+    repeated string operations = 1;
+}
+message ZRaftResponse {
+    // 当前节点的任期
+    int64 term = 1;
+    // 是否投票成功或者追加成功
+    bool success = 2;
+}
