@@ -7,6 +7,7 @@ import com.zmm.zraft.gRpc.IZRaftServiceGrpc;
 import com.zmm.zraft.gRpc.VoteRequest;
 import com.zmm.zraft.gRpc.ZRaftResponse;
 import com.zmm.zraft.NodeManager;
+import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.service.INodeService;
 import com.zmm.zraft.listen.FutureListener;
 import io.grpc.ManagedChannel;
@@ -171,26 +172,36 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
 
     @Override
     public void levelUp() {
-        switch (NodeManager.node.getNodeState()) {
-            case FOLLOWER:
-                NodeManager.printLog("to be candidate......");
-                // 1. 将当前节点设置设置为Candidate并为自己投票
-                startNewTerm();
-                // 2. 向其他节点发送RPC请求投票
-                sendVoteRequest();
-                break;
-            case CANDIDATE:
-                NodeManager.printLog("to be Leader......");
+        Node.NodeState state = NodeManager.node.getNodeState();
+        if (state == Node.NodeState.FOLLOWER) {
+            NodeManager.printLog("to be candidate......");
+            // 1. 将当前节点设置设置为Candidate并为自己投票
+            startNewTerm();
+            // 2. 向其他节点发送RPC请求投票
+            sendVoteRequest();
 
-                break;
-
-            default: break;
+        } else if (state == Node.NodeState.CANDIDATE) {
+            NodeManager.printLog("to be Leader......");
+            // 修改状态
+            NodeManager.node.setNodeState(Node.NodeState.LEADER);
+            // 设置当前任期的LeaderId
+            NodeManager.node.setLeaderId(NodeManager.node.getId());
+            // 开启心跳，关闭等待超时器
+            NodeManager.heartListener.start();
+            NodeManager.electionListener.stop();
         }
     }
 
     @Override
     public void levelDown() {
+        Node.NodeState state = NodeManager.node.getNodeState();
+        if (state == Node.NodeState.CANDIDATE) {
+            NodeManager.printLog("Candidate level down......");
 
+        } else if (state == Node.NodeState.LEADER) {
+            NodeManager.printLog("Leader level down......");
+
+        }
     }
 
     /**
@@ -213,11 +224,17 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
      * 开始新的任期，当等待时间超时，节点由Follower变为Candidate时调用
      */
     private void startNewTerm() {
+        // 增加任期
         NodeManager.node.addTerm();
+        // 修改节点状态
         NodeManager.node.setNodeState(Node.NodeState.CANDIDATE);
+        // 给自己投票
         NodeManager.node.setVotedFor(NodeManager.node.getId());
-        NodeManager.node.setLeaderId(0);
         FutureListener.resetVoteCount();
+        // 重置当前任期LeaderId
+        NodeManager.node.setLeaderId(0);
+        // 重置等待超时器
+        NodeManager.electionListener.updatePreHeartTime(System.currentTimeMillis());
     }
 
     /**

@@ -16,17 +16,17 @@ public class HeartListener implements Runnable{
     /**
      * 是否停止心跳包的发送
      */
-    private static boolean stop = true;
+    private volatile static boolean stop = true;
 
     /**
      * 心跳超时时间
      */
-    private static long timeout = 70;
+    private static long TIMEOUT = 70;
 
     /**
      * 心跳线程
      */
-    private Thread heartThread;
+    private final Thread heartThread = new Thread(this);
 
     /**
      * method
@@ -42,7 +42,7 @@ public class HeartListener implements Runnable{
 
             // sleep
             try {
-                TimeUnit.MILLISECONDS.sleep(timeout);
+                TimeUnit.MILLISECONDS.sleep(TIMEOUT);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -64,16 +64,32 @@ public class HeartListener implements Runnable{
                 .build();
     }
 
-    public void startHeart(long timeout) {
-        stop = false;
-        HeartListener.timeout = timeout <= 0 ? HeartListener.timeout : timeout;
-        if (heartThread == null) {
-            heartThread = new Thread(this);
-        }
-        heartThread.start();
+    /**
+     * 开启心跳计时器
+     */
+    public synchronized void start() {
+        start(TIMEOUT);
     }
 
-    public void stopHeart() {
-        stop = true;
+    /**
+     * 开启心跳计时器并设置心跳时间
+     * @param timeout           心跳时间
+     */
+    public synchronized void start(long timeout) {
+        if (stop) {
+            stop = false;
+            TIMEOUT = timeout <= 0 ? TIMEOUT : timeout;
+            heartThread.start();
+        }
+    }
+
+    /**
+     * 停止心跳计时器
+     */
+    public synchronized void stop() {
+        if (!stop) {
+            stop = true;
+            heartThread.interrupt();
+        }
     }
 }

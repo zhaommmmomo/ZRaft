@@ -13,6 +13,11 @@ import java.util.concurrent.TimeUnit;
 public class ElectionListener implements Runnable{
 
     /**
+     * 是否停止等待超时器
+     */
+    private volatile static boolean stop = false;
+
+    /**
      * 随机函数
      */
     private static final Random random = new Random();
@@ -33,6 +38,11 @@ public class ElectionListener implements Runnable{
     private int currentTimeOut;
 
     /**
+     * 等待超时线程
+     */
+    private final Thread electionThread = new Thread(this);
+
+    /**
      * method
      */
     private final ZRaftService zRaftService = new ZRaftService();
@@ -45,7 +55,7 @@ public class ElectionListener implements Runnable{
 
     @Override
     public void run() {
-        while (true) {
+        while (!stop) {
             // 节点刚启动的时候不会进入该逻辑里面
             // 会有一个等待超时时间
             // 如果当前时间 - 上一个心跳包接收到的时间 > 当前超时时间
@@ -53,7 +63,7 @@ public class ElectionListener implements Runnable{
             if (t - preHeartTime >= currentTimeOut) {
                 // 随机生成超时时间
                 currentTimeOut = random.nextInt(TIME) + TIME;
-                // 修改上次心跳的时间
+                // 修改上次心跳的时间，重置等待超时器
                 // 如果不修改的话，会一直sendVoteRequest()
                 preHeartTime = t;
                 // 触发开始选举逻辑
@@ -76,5 +86,25 @@ public class ElectionListener implements Runnable{
         // 而在run方法里面，每1ms就会读取一下preHeartTime
         // 所以不用担心多线程环境下带来的影响
         this.preHeartTime = preHeartTime;
+    }
+
+    /**
+     * 开启等待计时器
+     */
+    public synchronized void start() {
+        if (stop) {
+            stop = false;
+            electionThread.start();
+        }
+    }
+
+    /**
+     * 关闭等待计时器
+     */
+    public synchronized void stop () {
+        if (!stop) {
+            stop = true;
+            electionThread.interrupt();
+        }
     }
 }

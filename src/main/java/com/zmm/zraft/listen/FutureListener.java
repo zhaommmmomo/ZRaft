@@ -3,6 +3,7 @@ package com.zmm.zraft.listen;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.ZRaftResponse;
+import com.zmm.zraft.service.impl.ZRaftService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,11 @@ public class FutureListener implements Runnable{
      */
     private static final List<ListenableFuture<ZRaftResponse>> queue = new ArrayList<>();
 
+    /**
+     * method
+     */
+    private final ZRaftService zRaftService = new ZRaftService();
+
     @Override
     public void run() {
         synchronized (queue) {
@@ -39,13 +45,15 @@ public class FutureListener implements Runnable{
                                 NodeManager.printLog("已收到大数票");
                                 NodeManager.printNodeLog();
 
-                                // 如果当前的票数超过了一半，触发Leader逻辑
-                                // 变为Leader，发送心跳包，设置不会出现等待超时
-                                // TODO: 2021/11/17 触发toBeLeader逻辑
-
                                 // 清空FutureTask数据，确保里面没有因宕机每响应的Future
                                 voteCount = 0;
                                 queue.clear();
+
+                                // 如果当前的票数超过了一半，触发Leader逻辑
+                                // 变为Leader，发送心跳包，设置不会出现等待超时
+                                // TODO: 2021/11/17 触发toBeLeader逻辑
+                                zRaftService.levelUp();
+
                                 break;
                             }
 

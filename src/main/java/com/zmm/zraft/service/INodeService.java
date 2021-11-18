@@ -26,12 +26,13 @@ public interface INodeService {
     /**
      * 晋升方法
      * Follower -> Candidate
-     * Candidate ->
+     * Candidate -> Leader
      */
     void levelUp();
 
     /**
      * 降级方法
+     * Leader / Candidate  ->  Follower
      */
     void levelDown();
 }
