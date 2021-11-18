@@ -1,6 +1,5 @@
 package com.zmm.zraft;
 
-import com.zmm.zraft.gRpc.OperationLog;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -34,7 +33,7 @@ public class Term {
     /**
      * 当前任期内收到的命令
      */
-    private final List<OperationLog> log = new ArrayList<>();
+    private final List<List<String>> log = new ArrayList<>();
 
     /**
      * 最后一个已提交命令的索引

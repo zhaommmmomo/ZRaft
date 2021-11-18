@@ -28,13 +28,9 @@ message AppendRequest {
     // 新日志条目之前的日志任期
     int32 preLogTerm = 4;
     // 需要保存的日志条目，当内容为空时，是心跳包
-    repeated OperationLog entries = 5;
+    repeated string entries = 5;
     // leader已提交的日志条目
     int64 leaderCommit = 6;
-}
-message OperationLog {
-    // 某一任期内的操作数组
-    repeated string operations = 1;
 }
 message ZRaftResponse {
     // 当前节点的任期

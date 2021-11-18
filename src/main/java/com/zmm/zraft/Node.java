@@ -12,7 +12,7 @@ public class Node {
     /**
      * 节点id号
      */
-    private long id = new Random().nextLong();
+    private long id = new Random().nextInt(10000);
 
     /**
      * 记录当前节点状态
@@ -22,7 +22,7 @@ public class Node {
     /**
      * 任期信息
      */
-    private Term term;
+    private final Term term = new Term();
 
     public long getId() {
         return id;

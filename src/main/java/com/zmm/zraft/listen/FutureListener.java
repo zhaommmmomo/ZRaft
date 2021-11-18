@@ -34,7 +34,11 @@ public class FutureListener implements Runnable{
                         ZRaftResponse zRaftResponse = future.get();
                         if (zRaftResponse.getSuccess()) {
                             voteCount++;
-                            if (voteCount > (NodeManager.otherNodes.size() + 1) / 2) {
+                            if (voteCount > NodeManager.allNodeCounts / 2) {
+                                NodeManager.printLog("voteCount: " + voteCount);
+                                NodeManager.printLog("已收到大数票");
+                                NodeManager.printNodeLog();
+
                                 // 如果当前的票数超过了一半，触发Leader逻辑
                                 // 变为Leader，发送心跳包，设置不会出现等待超时
                                 // TODO: 2021/11/17 触发toBeLeader逻辑
@@ -42,6 +46,7 @@ public class FutureListener implements Runnable{
                                 // 清空FutureTask数据，确保里面没有因宕机每响应的Future
                                 voteCount = 0;
                                 queue.clear();
+                                break;
                             }
 
                         } else {
@@ -58,8 +63,12 @@ public class FutureListener implements Runnable{
                     }
                     queue.remove(future);
                     if (l == 1) {
+                        NodeManager.printLog("voteCount: " + voteCount);
+
+
                         // 代表当前元素是最后一个
                         // TODO: 2021/11/17 貌似这里不用判断是否是最后一个
+                        voteCount = 0;
                     }
                     break;
                 }

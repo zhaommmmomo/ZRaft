@@ -13,6 +13,8 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 /**
@@ -20,6 +22,8 @@ import java.util.concurrent.Executors;
  * @date 2021/11/16 17:18
  */
 public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implements INodeService {
+
+    private static List<IZRaftServiceGrpc.IZRaftServiceFutureStub> rpcFutureMethod;
 
     @Override
     public void requestVote(VoteRequest request,
@@ -80,10 +84,9 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         NodeManager.electionListener
                 .updatePreHeartTime(System.currentTimeMillis());
 
-        int count = request.getEntriesCount();
-        if (count == 0) {
-            // 说明这是个心跳包
-
+        String flag = request.getEntries(0);
+        if ("".equals(flag)) {
+            // 说明这是一个心跳包
         } else {
 
         }
@@ -99,26 +102,30 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         startNewTerm();
 
         // 2. 向其他节点发送RPC请求投票
-        sent();
+        sendVoteRequest();
     }
 
     // TODO: 2021/11/17 发送逻辑需要改一下
     @Override
-    public void sent() {
+    public void sendVoteRequest() {
+        NodeManager.printLog("============sendVoteRequest============");
+
+        // 构建请求投票包
         VoteRequest voteRequest = VoteRequest.newBuilder()
                 .setTerm(NodeManager.node.getCurrentTerm())
                 .setCandidateId(NodeManager.node.getId())
                 .setLastLogIndex(NodeManager.node.getLogIndex())
                 .setLastLogTerm(NodeManager.node.getLastLogTerm())
                 .build();
-        int l = NodeManager.otherNodes.size();
+
+        if (rpcFutureMethod == null) {
+            rpcMethodInit();
+        }
+
+        int l = rpcFutureMethod.size();
         for (int i = 0; i < l; i++) {
-            ManagedChannel channel = ManagedChannelBuilder
-                    .forAddress("127.0.0.1",
-                            NodeManager.otherNodes.get(i))
-                    .usePlaintext().build();
             IZRaftServiceGrpc.IZRaftServiceFutureStub futureStub =
-                    IZRaftServiceGrpc.newFutureStub(channel);
+                    rpcFutureMethod.get(i);
             // 发送RPC请求
             ListenableFuture<ZRaftResponse> future =
                     futureStub.requestVote(voteRequest);
@@ -128,6 +135,62 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
             future.addListener(new FutureListener(),
                     Executors.newFixedThreadPool(l));
         }
+    }
+
+    // TODO: 2021/11/18 未实现appendEntries接收方法
+    @Override
+    public void sendAppendEntries(AppendRequest appendRequest) {
+        if (rpcFutureMethod == null) {
+            rpcMethodInit();
+        }
+        int l = rpcFutureMethod.size();
+        List<ListenableFuture<ZRaftResponse>> queue = new ArrayList<>(l);
+        for (int i = 0; i < l; i++) {
+            IZRaftServiceGrpc.IZRaftServiceFutureStub futureStub =
+                    rpcFutureMethod.get(i);
+
+            ListenableFuture<ZRaftResponse> future =
+                    futureStub.appendEntries(appendRequest);
+            queue.add(future);
+            future.addListener(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (queue) {
+                        int n = queue.size();
+                        for (int j = 0; j < n; j++) {
+                            ListenableFuture<ZRaftResponse> response = queue.get(j);
+                            if (response.isDone()) {
+                                // 记录AppendEntries的结果
+                            }
+                        }
+                    }
+                }
+            }, Executors.newFixedThreadPool(l));
+        }
+    }
+
+    @Override
+    public void levelUp() {
+        switch (NodeManager.node.getNodeState()) {
+            case FOLLOWER:
+                NodeManager.printLog("to be candidate......");
+                // 1. 将当前节点设置设置为Candidate并为自己投票
+                startNewTerm();
+                // 2. 向其他节点发送RPC请求投票
+                sendVoteRequest();
+                break;
+            case CANDIDATE:
+                NodeManager.printLog("to be Leader......");
+
+                break;
+
+            default: break;
+        }
+    }
+
+    @Override
+    public void levelDown() {
+
     }
 
     /**
@@ -155,5 +218,22 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         NodeManager.node.setVotedFor(NodeManager.node.getId());
         NodeManager.node.setLeaderId(0);
         FutureListener.resetVoteCount();
+    }
+
+    /**
+     * 只有第一次发送RPC请求时会调用
+     * 初始化RPC方法并保存到list里面
+     */
+    private void rpcMethodInit() {
+        rpcFutureMethod = new ArrayList<>();
+        int l = NodeManager.otherNodes.size();
+        NodeManager.allNodeCounts += l;
+        for (int i = 0; i < l; i++) {
+            ManagedChannel channel = ManagedChannelBuilder
+                    .forAddress("127.0.0.1",
+                            NodeManager.otherNodes.get(i))
+                    .usePlaintext().build();
+            rpcFutureMethod.add(IZRaftServiceGrpc.newFutureStub(channel));
+        }
     }
 }

@@ -12,9 +12,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class ElectionListener implements Runnable{
 
+    /**
+     * 随机函数
+     */
     private static final Random random = new Random();
 
-    private final static int TIME = 150;
+    /**
+     * 基础超时时间
+     */
+    private final static int TIME = 1000;
 
     /**
      * 上一个心跳包接收到的时间，只有当接收到心跳包时才会被修改
@@ -43,9 +49,13 @@ public class ElectionListener implements Runnable{
             // 节点刚启动的时候不会进入该逻辑里面
             // 会有一个等待超时时间
             // 如果当前时间 - 上一个心跳包接收到的时间 > 当前超时时间
-            if (System.currentTimeMillis() - preHeartTime >= currentTimeOut) {
+            long t = System.currentTimeMillis();
+            if (t - preHeartTime >= currentTimeOut) {
                 // 随机生成超时时间
                 currentTimeOut = random.nextInt(TIME) + TIME;
+                // 修改上次心跳的时间
+                // 如果不修改的话，会一直sendVoteRequest()
+                preHeartTime = t;
                 // 触发开始选举逻辑
                 zRaftService.startElection();
             }
