@@ -96,6 +96,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         } else {
             // 如果当前任期小于等于请求节点的任期
             builder.setSuccess(true);
+            System.out.println("receive heart...");
 
             // 执行降级逻辑，六种情况:
             // 1. term == currentTerm && state == Follower。
@@ -254,7 +255,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
      * @param request       候选人id
      * @return              true / false
      */
-    private boolean vote(VoteRequest request) {
+    private synchronized boolean vote(VoteRequest request) {
         long term = request.getTerm();
         long currentTerm = NodeManager.node.getCurrentTerm();
         if (term < currentTerm) {
@@ -267,11 +268,20 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
             return true;
         }
 
-        long votedFor;
-        return  ((votedFor = NodeManager.node.getVotedFor()) == 0 ||
-                (votedFor == request.getCandidateId() &&
-                NodeManager.node.getLogIndex() == request.getLastLogIndex() &&
-                NodeManager.node.getLastLogTerm() == request.getLastLogTerm()));
+        long votedFor = NodeManager.node.getVotedFor();
+        long candidateId = request.getCandidateId();
+        if (votedFor == 0 ||
+           (votedFor == candidateId &&
+           NodeManager.node.getLogIndex() == request.getLastLogIndex() &&
+           NodeManager.node.getLastLogTerm() == request.getLastLogTerm())) {
+
+            NodeManager.node.setLeaderId(0);
+            NodeManager.node.setVotedFor(candidateId);
+            NodeManager.printNodeLog();
+            return true;
+        }
+
+        return  false;
     }
 
     /**
@@ -301,6 +311,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         NodeManager.node.setTermNum(request.getTerm());
         NodeManager.node.setLeaderId(request.getLeaderId());
         NodeManager.node.setVotedFor(leaderId);
+        NodeManager.node.setNodeState(Node.NodeState.FOLLOWER);
 
         NodeManager.printNodeLog();
     }

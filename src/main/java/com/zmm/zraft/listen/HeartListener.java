@@ -21,7 +21,7 @@ public class HeartListener implements Runnable{
     /**
      * 心跳超时时间
      */
-    private static long TIMEOUT = 800;
+    private static long TIMEOUT = 1500;
 
     /**
      * 心跳线程
@@ -38,6 +38,7 @@ public class HeartListener implements Runnable{
     public void run() {
         System.out.println("start HeartListener......");
         while (!stop) {
+            System.out.println("sent Heart......");
             // 发送心跳包
             zRaftService.sendAppendEntries(createHeartPacket());
 

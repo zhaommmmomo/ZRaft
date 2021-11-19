@@ -81,8 +81,6 @@ public class NodeManager {
         System.out.println("nodeState: " + node.getNodeState());
         System.out.println("votedFor: " + node.getVotedFor());
         System.out.println("leaderId: " + node.getLeaderId());
-        System.out.println("=============NodeManager===============");
-        System.out.println("allNodeCounts: " + allNodeCounts);
         System.out.println("=======================================");
     }
 }

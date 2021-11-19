@@ -25,7 +25,7 @@ public class ElectionListener implements Runnable{
     /**
      * 基础超时时间
      */
-    private final static int TIME = 1500;
+    private final static int TIME = 3000;
 
     /**
      * 上一个心跳包接收到的时间，只有当接收到心跳包时才会被修改
