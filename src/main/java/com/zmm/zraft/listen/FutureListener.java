@@ -51,7 +51,6 @@ public class FutureListener implements Runnable{
 
                                 // 如果当前的票数超过了一半，触发Leader逻辑
                                 // 变为Leader，发送心跳包，设置不会出现等待超时
-                                // TODO: 2021/11/17 触发toBeLeader逻辑
                                 zRaftService.levelUp();
                                 NodeManager.printNodeLog();
                                 break;

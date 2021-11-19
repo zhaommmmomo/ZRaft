@@ -16,8 +16,6 @@ import java.util.List;
  */
 public class NodeManager {
 
-    // TODO: 2021/11/18 投票选举还有点问题，会出现两个Leader 
-
     private static final SimpleDateFormat ft = new SimpleDateFormat ("yyyy-MM-dd hh:mm:ss");
 
     /**

@@ -215,7 +215,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         }
     }
 
-    // TODO: 2021/11/18 未实现appendEntries接收方法
+    // TODO: 2021/11/18 未完善appendEntries接收方法
     @Override
     public void sendAppendEntries(AppendRequest appendRequest) {
         if (rpcFutureMethod == null) {
@@ -352,7 +352,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
      * @param request       请求数据
      */
     private void updateNodeTermInfo(AppendRequest request) {
-        // TODO: 2021/11/18 还未实现修改节点的任期信息与Leader同步
+        // TODO: 2021/11/18 貌似可以了？
         long leaderId = request.getLeaderId();
         NodeManager.node.setTermNum(request.getTerm());
         NodeManager.node.setLeaderId(request.getLeaderId());
@@ -367,7 +367,7 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
      * @param request       请求数据
      */
     private void updateNodeTermInfo(VoteRequest request) {
-        // TODO: 2021/11/18 还未实现修改节点的任期信息与Leader同步
+        // TODO: 2021/11/18 貌似可以了？
         NodeManager.node.setTermNum(request.getTerm());
         NodeManager.node.setLeaderId(0);
         NodeManager.node.setVotedFor(request.getCandidateId());
