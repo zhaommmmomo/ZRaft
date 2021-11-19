@@ -21,7 +21,7 @@ public class HeartListener implements Runnable{
     /**
      * 心跳超时时间
      */
-    private static long TIMEOUT = 70;
+    private static long TIMEOUT = 800;
 
     /**
      * 心跳线程
@@ -31,11 +31,12 @@ public class HeartListener implements Runnable{
     /**
      * method
      */
-    private ZRaftService zRaftService;
+    private final ZRaftService zRaftService = new ZRaftService();
 
 
     @Override
     public void run() {
+        System.out.println("start HeartListener......");
         while (!stop) {
             // 发送心跳包
             zRaftService.sendAppendEntries(createHeartPacket());
@@ -47,6 +48,7 @@ public class HeartListener implements Runnable{
                 throw new RuntimeException(e);
             }
         }
+        System.out.println("stop HeartListener......");
     }
 
     /**
@@ -59,7 +61,7 @@ public class HeartListener implements Runnable{
                 .setLeaderId(NodeManager.node.getId())
                 .setPreLogIndex(NodeManager.node.getLogIndex())
                 .setPreLogTerm(NodeManager.node.getLastLogTerm())
-                .setEntries(0, "")
+                .addEntries("")
                 .setLeaderCommit(NodeManager.node.getCommitIndex())
                 .build();
     }
@@ -89,7 +91,6 @@ public class HeartListener implements Runnable{
     public synchronized void stop() {
         if (!stop) {
             stop = true;
-            heartThread.interrupt();
         }
     }
 }

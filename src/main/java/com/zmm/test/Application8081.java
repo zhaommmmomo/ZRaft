@@ -6,6 +6,7 @@ import io.grpc.ServerBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zmm
@@ -15,15 +16,17 @@ public class Application8081 {
     public static void main(String[] args) {
         try {
             while (true) {
-                if (System.currentTimeMillis() % 10000 / 100 == 10) {
+                if (System.currentTimeMillis() > Test.time) {
                     break;
                 }
+                TimeUnit.MILLISECONDS.sleep(500);
             }
 
             List<Integer> nodes = new ArrayList<>();
-            nodes.add(8083);
-            nodes.add(8082);
             nodes.add(8080);
+            nodes.add(8082);
+            nodes.add(8083);
+
             //启动服务
             io.grpc.Server server = ServerBuilder.forPort(8081).addService(new ZRaftService()).build();
             server.start();

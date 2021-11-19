@@ -1,13 +1,13 @@
 package com.zmm.zraft.service.impl;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.Node;
 import com.zmm.zraft.gRpc.AppendRequest;
 import com.zmm.zraft.gRpc.IZRaftServiceGrpc;
 import com.zmm.zraft.gRpc.VoteRequest;
 import com.zmm.zraft.gRpc.ZRaftResponse;
 import com.zmm.zraft.NodeManager;
-import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.service.INodeService;
 import com.zmm.zraft.listen.FutureListener;
 import io.grpc.ManagedChannel;
@@ -74,24 +74,55 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
     @Override
     public void appendEntries(AppendRequest request,
                               StreamObserver<ZRaftResponse> responseObserver) {
-
-        ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
-                .setTerm(NodeManager.node.getCurrentTerm());
-        if (request.getTerm() < NodeManager.node.getCurrentTerm()) {
-            builder.setSuccess(false);
-        }
-
-        // 更新等待定时器的时间
+        // 更新等待计时器
         NodeManager.electionListener
                 .updatePreHeartTime(System.currentTimeMillis());
 
-        String flag = request.getEntries(0);
-        if ("".equals(flag)) {
-            // 说明这是一个心跳包
-        } else {
+        ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
+                .setTerm(NodeManager.node.getCurrentTerm());
 
+        long term = request.getTerm();
+        long currentTerm = NodeManager.node.getCurrentTerm();
+        Node.NodeState state = NodeManager.node.getNodeState();
+
+        if (term < currentTerm) {
+            // 如果当前任期大于请求节点的任期
+            builder.setSuccess(false);
+
+            //if (state == Node.NodeState.LEADER) {
+            //    // 如果当前节点是Leader，不用管
+            //}
+
+        } else {
+            // 如果当前任期小于等于请求节点的任期
+            builder.setSuccess(true);
+
+            // 执行降级逻辑，六种情况:
+            // 1. term == currentTerm && state == Follower。
+            //    更新等待时间和数据
+            // 2. term == currentTerm && state == Candidate。
+            //    当前节点选举输了，更新等待时间、任期信息和数据
+            // 3. term == currentTerm && state == Leader。
+            //    不可能出现
+            // 4. term > currentTerm && state == Follower。
+            //    不可能出现
+            // 5. term > currentTerm && state == Candidate。
+            //    更新等待时间、任期信息和数据
+            // 6. term > currentTerm && state == Leader。
+            //    更新任期信息和数据，关闭心跳，
+            //    执行降级逻辑，
+            //levelDown(request);
+
+            // test。只修改信息
+            if (term != currentTerm ||
+                    state == Node.NodeState.CANDIDATE ||
+                    state == Node.NodeState.LEADER) {
+                updateNodeTermInfo(request);
+            }
         }
 
+        responseObserver.onNext(builder.build());
+        responseObserver.onCompleted();
     }
 
     /**
@@ -106,10 +137,9 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         sendVoteRequest();
     }
 
-    // TODO: 2021/11/17 发送逻辑需要改一下
     @Override
     public void sendVoteRequest() {
-        NodeManager.printLog("============sendVoteRequest============");
+        NodeManager.printLog("sendVoteRequest......");
 
         // 构建请求投票包
         VoteRequest voteRequest = VoteRequest.newBuilder()
@@ -193,16 +223,29 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
     }
 
     @Override
-    public void levelDown() {
+    public void levelDown(AppendRequest request) {
         Node.NodeState state = NodeManager.node.getNodeState();
-        if (state == Node.NodeState.CANDIDATE) {
-            NodeManager.printLog("Candidate level down......");
-
-        } else if (state == Node.NodeState.LEADER) {
-            NodeManager.printLog("Leader level down......");
-
+        if (state == Node.NodeState.FOLLOWER) {
+            updateEntries(request.getEntriesList());
+            return;
         }
+
+        if (state == Node.NodeState.LEADER) {
+            NodeManager.printLog("Leader level down......");
+            // 关闭心跳计时器、更新数据并开启等待计时器
+            NodeManager.heartListener.stop();
+        } else {
+            NodeManager.printLog("Candidate level down......");
+        }
+        // 更新节点任期信息
+        updateNodeTermInfo(request);
+        // 更新条目
+        updateEntries(request.getEntriesList());
+        // 开启等待计时器，如果计时器以及开启了，会重置上一个心跳时间和等待时间
+        NodeManager.electionListener.start();
     }
+
+
 
     /**
      * 判断当前节点是否投票给候选人
@@ -212,9 +255,20 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
      * @return              true / false
      */
     private boolean vote(VoteRequest request) {
+        long term = request.getTerm();
+        long currentTerm = NodeManager.node.getCurrentTerm();
+        if (term < currentTerm) {
+            return false;
+        }
+
+        if (term > currentTerm) {
+            // 修改任期
+            updateNodeTermInfo(request);
+            return true;
+        }
+
         long votedFor;
-        return  request.getTerm() >= NodeManager.node.getCurrentTerm() &&
-                ((votedFor = NodeManager.node.getVotedFor()) == 0 ||
+        return  ((votedFor = NodeManager.node.getVotedFor()) == 0 ||
                 (votedFor == request.getCandidateId() &&
                 NodeManager.node.getLogIndex() == request.getLastLogIndex() &&
                 NodeManager.node.getLastLogTerm() == request.getLastLogTerm()));
@@ -235,6 +289,41 @@ public class ZRaftService extends IZRaftServiceGrpc.IZRaftServiceImplBase implem
         NodeManager.node.setLeaderId(0);
         // 重置等待超时器
         NodeManager.electionListener.updatePreHeartTime(System.currentTimeMillis());
+    }
+
+    /**
+     * 修改节点任期信息
+     * @param request       请求数据
+     */
+    private void updateNodeTermInfo(AppendRequest request) {
+        // TODO: 2021/11/18 还未实现修改节点的任期信息与Leader同步
+        long leaderId = request.getLeaderId();
+        NodeManager.node.setTermNum(request.getTerm());
+        NodeManager.node.setLeaderId(request.getLeaderId());
+        NodeManager.node.setVotedFor(leaderId);
+
+        NodeManager.printNodeLog();
+    }
+
+    /**
+     * 修改节点任期信息
+     * @param request       请求数据
+     */
+    private void updateNodeTermInfo(VoteRequest request) {
+        // TODO: 2021/11/18 还未实现修改节点的任期信息与Leader同步
+        NodeManager.node.setTermNum(request.getTerm());
+        NodeManager.node.setLeaderId(0);
+        NodeManager.node.setVotedFor(request.getCandidateId());
+
+        NodeManager.printNodeLog();
+    }
+
+    /**
+     * 更新条目信息
+     * @param entries       新增的条目数据
+     */
+    private void updateEntries(ProtocolStringList entries) {
+        // TODO: 2021/11/18 还未实现新增条目信息
     }
 
     /**

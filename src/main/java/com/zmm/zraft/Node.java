@@ -32,6 +32,10 @@ public class Node {
         term.addCurrentTerm();
     }
 
+    public void setTermNum(long termNum) {
+        term.setCurrentTerm(termNum);
+    }
+
     public long getCurrentTerm() {
         return term.getCurrentTerm();
     }

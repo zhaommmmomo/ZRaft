@@ -4,7 +4,9 @@ import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.listen.HeartListener;
 import io.grpc.ManagedChannel;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -13,6 +15,10 @@ import java.util.List;
  * @date 2021/11/16 9:53
  */
 public class NodeManager {
+
+    // TODO: 2021/11/18 投票选举还有点问题，会出现两个Leader 
+
+    private static final SimpleDateFormat ft = new SimpleDateFormat ("yyyy-MM-dd hh:mm:ss");
 
     /**
      * 当前节点信息
@@ -31,11 +37,6 @@ public class NodeManager {
     public static List<Integer> otherNodes;
 
     /**
-     * 与其他节点的channel
-     */
-    public final static List<ManagedChannel> channels = new ArrayList<>();
-
-    /**
      * 等待定时器，Leader不会开启
      */
     public static final ElectionListener electionListener;
@@ -51,8 +52,8 @@ public class NodeManager {
         node = new Node();
         // 启动等待定时器
         electionListener = new ElectionListener();
-        new Thread(electionListener).start();
-
+        heartListener = new HeartListener();
+        electionListener.start();
         printNodeLog();
     }
 
@@ -69,11 +70,11 @@ public class NodeManager {
     //}
 
     public static void printLog(String msg) {
-        System.out.println(msg);
+        System.out.println(ft.format(new Date()) + "  " + msg);
     }
 
     public static void printNodeLog() {
-        System.out.println("=======================================");
+        System.out.println("=========  " + ft.format(new Date()) + "  =======");
         System.out.println("==============NodeInfo=================");
         System.out.println("nodeId: " + node.getId());
         System.out.println("term: " + node.getCurrentTerm());

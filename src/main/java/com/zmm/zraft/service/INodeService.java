@@ -33,6 +33,7 @@ public interface INodeService {
     /**
      * 降级方法
      * Leader / Candidate  ->  Follower
+     * @param request               请求数据
      */
-    void levelDown();
+    void levelDown(AppendRequest request);
 }

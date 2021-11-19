@@ -40,10 +40,10 @@ public class FutureListener implements Runnable{
                         ZRaftResponse zRaftResponse = future.get();
                         if (zRaftResponse.getSuccess()) {
                             voteCount++;
+                            NodeManager.printLog("voteCount: " + voteCount);
                             if (voteCount > NodeManager.allNodeCounts / 2) {
-                                NodeManager.printLog("voteCount: " + voteCount);
                                 NodeManager.printLog("已收到大数票");
-                                NodeManager.printNodeLog();
+
 
                                 // 清空FutureTask数据，确保里面没有因宕机每响应的Future
                                 voteCount = 0;
@@ -53,7 +53,7 @@ public class FutureListener implements Runnable{
                                 // 变为Leader，发送心跳包，设置不会出现等待超时
                                 // TODO: 2021/11/17 触发toBeLeader逻辑
                                 zRaftService.levelUp();
-
+                                NodeManager.printNodeLog();
                                 break;
                             }
 

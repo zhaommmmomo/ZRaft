@@ -15,7 +15,7 @@ public class ElectionListener implements Runnable{
     /**
      * 是否停止等待超时器
      */
-    private volatile static boolean stop = false;
+    private volatile static boolean stop = true;
 
     /**
      * 随机函数
@@ -25,17 +25,17 @@ public class ElectionListener implements Runnable{
     /**
      * 基础超时时间
      */
-    private final static int TIME = 1000;
+    private final static int TIME = 1500;
 
     /**
      * 上一个心跳包接收到的时间，只有当接收到心跳包时才会被修改
      */
-    private volatile long preHeartTime;
+    private volatile static long preHeartTime;
 
     /**
      * 当前等待超时时间
      */
-    private int currentTimeOut;
+    private static int currentTimeOut;
 
     /**
      * 等待超时线程
@@ -55,6 +55,7 @@ public class ElectionListener implements Runnable{
 
     @Override
     public void run() {
+        System.out.println("start ElectionListener......");
         while (!stop) {
             // 节点刚启动的时候不会进入该逻辑里面
             // 会有一个等待超时时间
@@ -70,28 +71,35 @@ public class ElectionListener implements Runnable{
                 zRaftService.startElection();
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(1);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
+        System.out.println("stop ElectionListener......");
     }
 
     /**
      * 修改上一个心跳包到达的时间
-     * @param preHeartTime          当前心跳包到达的时间
+     * @param heartTime          当前心跳包到达的时间
      */
-    public void updatePreHeartTime(long preHeartTime) {
+    public synchronized void updatePreHeartTime(long heartTime) {
         // 这里可以不用加锁，只有当前节点收到心跳包时才会修改preHeartTime
         // 而在run方法里面，每1ms就会读取一下preHeartTime
         // 所以不用担心多线程环境下带来的影响
-        this.preHeartTime = preHeartTime;
+        // 还是加锁了（真香） :-)
+        preHeartTime = heartTime;
     }
 
     /**
      * 开启等待计时器
      */
     public synchronized void start() {
+
+        // 重置等待时间
+        currentTimeOut = random.nextInt(TIME) + TIME;
+        preHeartTime = System.currentTimeMillis();
+
         if (stop) {
             stop = false;
             electionThread.start();
@@ -104,7 +112,6 @@ public class ElectionListener implements Runnable{
     public synchronized void stop () {
         if (!stop) {
             stop = true;
-            electionThread.interrupt();
         }
     }
 }

@@ -6,6 +6,7 @@ import io.grpc.ServerBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zmm
@@ -13,11 +14,13 @@ import java.util.List;
  */
 public class Application8080 {
     public static void main(String[] args) {
+
         try {
             while (true) {
-                if (System.currentTimeMillis() % 10000 / 100 == 10) {
+                if (System.currentTimeMillis() > Test.time) {
                     break;
                 }
+                TimeUnit.MILLISECONDS.sleep(500);
             }
 
             List<Integer> nodes = new ArrayList<>();
