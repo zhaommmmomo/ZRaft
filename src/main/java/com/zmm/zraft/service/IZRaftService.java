@@ -1,12 +1,13 @@
 package com.zmm.zraft.service;
 
 import com.zmm.zraft.gRpc.AppendRequest;
+import com.zmm.zraft.gRpc.VoteRequest;
 
 /**
  * @author zmm
  * @date 2021/11/16 9:50
  */
-public interface INodeService {
+public interface IZRaftService {
 
     /**
      * 开启选举
@@ -36,4 +37,8 @@ public interface INodeService {
      * @param request               请求数据
      */
     void levelDown(AppendRequest request);
+
+    void updateNodeTermInfo(AppendRequest request);
+
+    void updateNodeTermInfo(VoteRequest request);
 }

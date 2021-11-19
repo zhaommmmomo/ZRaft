@@ -3,6 +3,7 @@ package com.zmm.zraft.listen;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.ZRaftResponse;
+import com.zmm.zraft.service.IZRaftService;
 import com.zmm.zraft.service.impl.ZRaftService;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class FutureListener implements Runnable{
     /**
      * method
      */
-    private final ZRaftService zRaftService = new ZRaftService();
+    private final IZRaftService zRaftService = new ZRaftService();
 
     @Override
     public void run() {

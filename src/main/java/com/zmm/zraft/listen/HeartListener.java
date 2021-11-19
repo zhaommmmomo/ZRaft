@@ -2,6 +2,7 @@ package com.zmm.zraft.listen;
 
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.AppendRequest;
+import com.zmm.zraft.service.IZRaftService;
 import com.zmm.zraft.service.impl.ZRaftService;
 
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,7 @@ public class HeartListener implements Runnable{
     /**
      * 心跳超时时间
      */
-    private static long TIMEOUT = 1500;
+    private static long TIMEOUT = 70;
 
     /**
      * 心跳线程
@@ -31,7 +32,7 @@ public class HeartListener implements Runnable{
     /**
      * method
      */
-    private final ZRaftService zRaftService = new ZRaftService();
+    private final IZRaftService zRaftService = new ZRaftService();
 
 
     @Override

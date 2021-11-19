@@ -1,5 +1,7 @@
 package com.zmm.zraft;
 
+import com.zmm.zraft.gRpc.AppendRequest;
+import com.zmm.zraft.gRpc.VoteRequest;
 import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.listen.HeartListener;
 import io.grpc.ManagedChannel;

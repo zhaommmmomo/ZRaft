@@ -1,5 +1,6 @@
 package com.zmm.zraft.listen;
 
+import com.zmm.zraft.service.IZRaftService;
 import com.zmm.zraft.service.impl.ZRaftService;
 
 import java.util.Random;
@@ -25,7 +26,7 @@ public class ElectionListener implements Runnable{
     /**
      * 基础超时时间
      */
-    private final static int TIME = 3000;
+    private final static int TIME = 150;
 
     /**
      * 上一个心跳包接收到的时间，只有当接收到心跳包时才会被修改
@@ -45,7 +46,7 @@ public class ElectionListener implements Runnable{
     /**
      * method
      */
-    private final ZRaftService zRaftService = new ZRaftService();
+    private final IZRaftService zRaftService = new ZRaftService();
 
     public ElectionListener () {
         // 初始化上一个心跳包接收到的时间和等待超时时间

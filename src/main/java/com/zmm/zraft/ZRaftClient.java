@@ -1,6 +1,6 @@
 package com.zmm.zraft;
 
-import com.zmm.zraft.gRpc.IZRaftServiceGrpc;
+import com.zmm.zraft.gRpc.RPCServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
@@ -13,7 +13,8 @@ public class ZRaftClient {
         ManagedChannel channel = ManagedChannelBuilder
                                     .forAddress("127.0.0.1", 8080)
                                     .usePlaintext().build();
-        IZRaftServiceGrpc.IZRaftServiceBlockingStub blockingStub = IZRaftServiceGrpc.newBlockingStub(channel);
+
+        RPCServiceGrpc.RPCServiceBlockingStub blockingStub = RPCServiceGrpc.newBlockingStub(channel);
         System.out.println(blockingStub.requestVote(null));
     }
 }

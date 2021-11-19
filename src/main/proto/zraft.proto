@@ -1,9 +1,10 @@
+// 节点内部的RPC方法
 syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "com.zmm.zraft.gRpc";
 
-service IZRaftService {
+service RPCService {
     rpc requestVote (VoteRequest) returns (ZRaftResponse) {}
     rpc appendEntries (AppendRequest) returns (ZRaftResponse) {}
 }
