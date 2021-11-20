@@ -8,7 +8,7 @@ service RPCService {
     rpc requestVote (VoteRequest) returns (ZRaftResponse) {}
     rpc appendEntries (AppendRequest) returns (ZRaftResponse) {}
     // 客户端调用方法
-    rpc sendCommand (Command) returns (ZRaftResponse) {}
+    rpc sendCommand (Command) returns (ClientResponse) {}
 }
 //定义消息类型
 message VoteRequest {
@@ -44,6 +44,11 @@ message Entry {
 message Command {
     // 指令
     repeated string command = 1;
+}
+message ClientResponse {
+    bool success = 1;
+    // 用于重定向
+    int64 leaderId = 2;
 }
 message ZRaftResponse {
     // 当前节点的任期

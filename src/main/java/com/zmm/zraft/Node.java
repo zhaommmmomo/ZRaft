@@ -1,6 +1,5 @@
 package com.zmm.zraft;
 
-import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.gRpc.Entry;
 
 import java.util.List;
@@ -32,8 +31,20 @@ public class Node {
         return term.entryIsExist(preLogTerm, preLogIndex);
     }
 
+    public boolean addLogEntries(List<Entry> entries) {
+        return term.addLogEntries(entries);
+    }
+
     public boolean addLogEntries(long preLogIndex, List<Entry> entries) {
         return term.addLogEntries(preLogIndex, entries);
+    }
+
+    public long getPreTermByIndex(long nextIndex) {
+        return term.getPreTermByIndex(nextIndex);
+    }
+
+    public synchronized List<Entry> getEntriesFromIndex(long nextIndex) {
+        return term.getEntriesFromIndex(nextIndex);
     }
 
     public synchronized boolean commitLog(long commitIndex) {

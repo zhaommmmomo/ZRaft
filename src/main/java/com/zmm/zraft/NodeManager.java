@@ -38,6 +38,11 @@ public class NodeManager {
     public static List<Integer> otherNodes;
 
     /**
+     * 记录需要发送给每个节点条目的索引
+     */
+    public static List<Integer> nextIndex;
+
+    /**
      * 等待定时器，Leader不会开启
      */
     public static final ElectionListener electionListener;

@@ -89,6 +89,18 @@ public class Term {
 
     /**
      * 添加日志条目
+     * @param entries           指定条目
+     * @return                  true / false
+     */
+    public synchronized boolean addLogEntries(List<Entry> entries) {
+        // 追加条目
+        boolean flag = log.addAll(entries);
+        logIndex = log.size();
+        return flag;
+    }
+
+    /**
+     * 添加日志条目
      * @param preLogIndex       最后一个条目的索引
      * @param entries           指定条目
      * @return                  true / false
@@ -117,5 +129,35 @@ public class Term {
         this.commitIndex = Math.min(commitIndex, logIndex);
         // 执行存储逻辑
         return true;
+    }
+
+    /**
+     * 获取指定条目之前的任期
+     * @param nextIndex     指定条目索引
+     * @return              任期
+     */
+    public long getPreTermByIndex(long nextIndex) {
+        if (nextIndex == 0) {
+            return 0;
+        }
+        if (nextIndex > logIndex) {
+            throw new RuntimeException("索引越界......");
+        }
+        return log.get((int) (nextIndex - 1)).getTerm();
+    }
+
+    /**
+     * 获取指定下标后的条目
+     * @param nextIndex     指定下标
+     * @return              条目信息
+     */
+    public synchronized List<Entry> getEntriesFromIndex(long nextIndex) {
+        if (nextIndex > logIndex) {
+            return null;
+        }
+        if (nextIndex <= 0) {
+            return log;
+        }
+        return log.subList((int) nextIndex, (int) logIndex);
     }
 }

@@ -1,14 +1,19 @@
 package com.zmm.zraft.service.impl;
 
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.Node;
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.*;
+import com.zmm.zraft.listen.AppendFutureListener;
 import com.zmm.zraft.service.IZRaftService;
 import io.grpc.stub.StreamObserver;
+import lombok.SneakyThrows;
 
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RPC方法类
@@ -155,15 +160,86 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
     }
 
     /**
-     * 客户端调用的方法
-     * @param request           指令集
+     * 客户端调用的RPC方法。
+     * 如果当前节点是Leader:
+     *    第一阶段，将指令保存在log条目中，给其他节点发送AppendEntries，异步等待消息。
+     *    第二阶段，当大多数节点返回true，在本地进行提交并将结果返回给用户，同时向其他节点
+     *    发送提交命令.
+     * 如果当前节点是Follower:
+     *    将该请求重定向到Leader去。
+     * @param request           指令集（字符串list）
      */
     @Override
-    public void sendCommand(Command request, StreamObserver<ZRaftResponse> responseObserver) {
+    public void sendCommand(Command request, StreamObserver<ClientResponse> responseObserver) {
         ProtocolStringList commandList = request.getCommandList();
-        if (commandList.size() == 0) {
-
+        ClientResponse.Builder builder = ClientResponse.newBuilder();
+        boolean b = false;
+        int size = commandList.size();
+        Node.NodeState state = NodeManager.node.getNodeState();
+        long leaderId = NodeManager.node.getLeaderId();
+        if (size == 0 || state != Node.NodeState.LEADER) {
+            responseObserver.onNext(builder.setSuccess(b).setLeaderId(leaderId).build());
+            responseObserver.onCompleted();
+            return;
         }
+
+        // 处理该请求
+        // 第一阶段，保存指令到本地并给其他节点发送消息
+        long currentTerm = NodeManager.node.getCurrentTerm();
+        List<Entry> entries = new ArrayList<>();
+        for (String command : commandList) {
+            Entry entry = Entry.newBuilder()
+                               .setTerm(currentTerm)
+                               .setCommand(command)
+                               .build();
+            entries.add(entry);
+        }
+        if (!NodeManager.node.addLogEntries(entries)) {
+            // 如果本地添加条目失败，返回false
+            responseObserver.onNext(builder.setSuccess(b).setLeaderId(leaderId).build());
+            responseObserver.onCompleted();
+            return;
+        }
+
+        // 将返回交给AppendFutureListener
+        AppendFutureListener.responseObserver = responseObserver;
+
+        // 本次Append的条目数
+        AppendFutureListener.setEntriesCount(entries.size());
+
+        // 发送RPC请求
+        zRaftService.sendAppendEntries();
+
+        //size = ZRaftService.rpcFutureMethod.size();
+        //
+        //AppendRequest.Builder appendBuilder = AppendRequest.newBuilder()
+        //        .setTerm(currentTerm)
+        //        .setLeaderId(leaderId)
+        //        .setLeaderCommit(NodeManager.node.getCommitIndex());
+        //
+        //for (int i = 0; i < size; i++) {
+        //
+        //    // 获取需要发送的一下个条目的索引
+        //    int nextIndex = NodeManager.nextIndex.get(i);
+        //
+        //    // 获取需要给该节点发送的entries
+        //    appendBuilder.setPreLogIndex(nextIndex - 1)
+        //        .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
+        //        .addAllEntries(NodeManager.node.getEntriesFromIndex(nextIndex));
+        //
+        //
+        //    RPCServiceGrpc.RPCServiceFutureStub futureStub =
+        //            ZRaftService.rpcFutureMethod.get(i);
+        //    // 调用AppendEntries方法
+        //    ListenableFuture<ZRaftResponse> future =
+        //            futureStub.appendEntries(appendBuilder.build());
+        //
+        //    // 将结果添加到AppendFutureListener中
+        //    AppendFutureListener.addFuture(future);
+        //
+        //    future.addListener(new AppendFutureListener(),
+        //            Executors.newFixedThreadPool(size));
+        //}
     }
 
     /**

@@ -2,9 +2,12 @@ package com.zmm.zraft.listen;
 
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.AppendRequest;
+import com.zmm.zraft.gRpc.Entry;
 import com.zmm.zraft.service.IZRaftService;
 import com.zmm.zraft.service.impl.ZRaftService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**

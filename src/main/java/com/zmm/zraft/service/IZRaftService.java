@@ -15,9 +15,14 @@ public interface IZRaftService {
     void sendVoteRequest();
 
     /**
-     * 发送添加条目
+     * 给每个节点发送相同的条目
      */
     void sendAppendEntries(AppendRequest appendRequest);
+
+    /**
+     * 给每个节点发送不同的条目
+     */
+    void sendAppendEntries();
 
     /**
      * 晋升方法

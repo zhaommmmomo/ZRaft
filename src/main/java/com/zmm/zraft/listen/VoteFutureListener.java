@@ -13,7 +13,7 @@ import java.util.List;
  * @author zmm
  * @date 2021/11/17 18:14
  */
-public class FutureListener implements Runnable{
+public class VoteFutureListener implements Runnable{
 
     /**
      * 最近一次选举获得的票数

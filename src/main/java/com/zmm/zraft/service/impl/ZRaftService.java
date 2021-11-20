@@ -1,14 +1,14 @@
 package com.zmm.zraft.service.impl;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.Node;
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.AppendRequest;
 import com.zmm.zraft.gRpc.RPCServiceGrpc;
 import com.zmm.zraft.gRpc.VoteRequest;
 import com.zmm.zraft.gRpc.ZRaftResponse;
-import com.zmm.zraft.listen.FutureListener;
+import com.zmm.zraft.listen.AppendFutureListener;
+import com.zmm.zraft.listen.VoteFutureListener;
 import com.zmm.zraft.service.IZRaftService;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -51,10 +51,48 @@ public class ZRaftService implements IZRaftService {
             ListenableFuture<ZRaftResponse> future =
                     futureStub.requestVote(voteRequest);
             // 将Future结果添加到链表中
-            FutureListener.addFuture(future);
+            VoteFutureListener.addFuture(future);
             // 给每个Future设置监听任务
-            future.addListener(new FutureListener(),
+            future.addListener(new VoteFutureListener(),
                     Executors.newFixedThreadPool(l));
+        }
+    }
+
+    @Override
+    public void sendAppendEntries() {
+        if (rpcFutureMethod == null) {
+            rpcMethodInit();
+        }
+
+        int size = ZRaftService.rpcFutureMethod.size();
+
+        AppendRequest.Builder appendBuilder = AppendRequest.newBuilder()
+                .setTerm(NodeManager.node.getCurrentTerm())
+                .setLeaderId(NodeManager.node.getId())
+                .setLeaderCommit(NodeManager.node.getCommitIndex());
+
+        for (int i = 0; i < size; i++) {
+
+            // 获取需要发送的一下个条目的索引
+            int nextIndex = NodeManager.nextIndex.get(i);
+
+            // 获取需要给该节点发送的entries
+            appendBuilder.setPreLogIndex(nextIndex - 1)
+                    .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
+                    .addAllEntries(NodeManager.node.getEntriesFromIndex(nextIndex));
+
+            RPCServiceGrpc.RPCServiceFutureStub futureStub =
+                    ZRaftService.rpcFutureMethod.get(i);
+
+            // 调用AppendEntries方法
+            ListenableFuture<ZRaftResponse> future =
+                    futureStub.appendEntries(appendBuilder.build());
+
+            // 将结果添加到AppendFutureListener中
+            AppendFutureListener.addFuture(future);
+
+            future.addListener(new AppendFutureListener(),
+                    Executors.newFixedThreadPool(size));
         }
     }
 
@@ -183,7 +221,7 @@ public class ZRaftService implements IZRaftService {
         NodeManager.node.setNodeState(Node.NodeState.CANDIDATE);
         // 给自己投票
         NodeManager.node.setVotedFor(NodeManager.node.getId());
-        FutureListener.resetVoteCount();
+        VoteFutureListener.resetVoteCount();
         // 重置当前任期LeaderId
         NodeManager.node.setLeaderId(0);
         // 重置等待超时器
