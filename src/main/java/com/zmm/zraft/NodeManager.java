@@ -1,10 +1,11 @@
 package com.zmm.zraft;
 
-import com.zmm.zraft.gRpc.AppendRequest;
-import com.zmm.zraft.gRpc.VoteRequest;
+import com.zmm.zraft.gRpc.RPCServiceGrpc;
 import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.listen.HeartListener;
+import com.zmm.zraft.service.impl.ZRaftService;
 import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -56,18 +57,6 @@ public class NodeManager {
         electionListener.start();
         printNodeLog();
     }
-
-    //public static void init(List<Integer> otherNodes) {
-    //    int l = otherNodes.size();
-    //    allNodeCounts += l;
-    //    for (int i = 0; i < l; i++) {
-    //        ManagedChannel channel = ManagedChannelBuilder
-    //                .forAddress("127.0.0.1",
-    //                        NodeManager.otherNodes.get(i))
-    //                .usePlaintext().build();
-    //        channels.add(channel);
-    //    }
-    //}
 
     public static void printLog(String msg) {
         System.out.println(ft.format(new Date()) + "  " + msg);

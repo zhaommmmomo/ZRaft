@@ -41,9 +41,7 @@ public class FutureListener implements Runnable{
                         ZRaftResponse zRaftResponse = future.get();
                         if (zRaftResponse.getSuccess()) {
                             voteCount++;
-                            NodeManager.printLog("voteCount: " + voteCount);
                             if (voteCount > NodeManager.allNodeCounts / 2) {
-                                NodeManager.printLog("已收到大数票");
 
 
                                 // 清空FutureTask数据，确保里面没有因宕机每响应的Future
@@ -71,7 +69,6 @@ public class FutureListener implements Runnable{
                     }
                     queue.remove(future);
                     if (l == 1) {
-                        NodeManager.printLog("voteCount: " + voteCount);
 
 
                         // 代表当前元素是最后一个

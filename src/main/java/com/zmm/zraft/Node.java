@@ -1,5 +1,9 @@
 package com.zmm.zraft;
 
+import com.google.protobuf.ProtocolStringList;
+import com.zmm.zraft.gRpc.Entry;
+
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -23,6 +27,18 @@ public class Node {
      * 任期信息
      */
     private final Term term = new Term();
+
+    public boolean entryIsExist(long preLogTerm, long preLogIndex) {
+        return term.entryIsExist(preLogTerm, preLogIndex);
+    }
+
+    public boolean addLogEntries(long preLogIndex, List<Entry> entries) {
+        return term.addLogEntries(preLogIndex, entries);
+    }
+
+    public synchronized boolean commitLog(long commitIndex) {
+        return term.commitLog(commitIndex);
+    }
 
     public long getId() {
         return id;
@@ -64,7 +80,7 @@ public class Node {
         return term.getLogIndex();
     }
 
-    public int getLastLogTerm() {
+    public long getLastLogTerm() {
         return term.getLastLogTerm();
     }
 

@@ -24,24 +24,13 @@ import java.util.concurrent.Executors;
  */
 public class ZRaftService implements IZRaftService {
 
-    private static List<RPCServiceGrpc.RPCServiceFutureStub> rpcFutureMethod;
-
     /**
-     * 开始选举
+     * RPC异步方法
      */
-    @Override
-    public void startElection() {
-        // 1. 将当前节点设置设置为Candidate并为自己投票
-        startNewTerm();
-
-        // 2. 向其他节点发送RPC请求投票
-        sendVoteRequest();
-    }
+    public static List<RPCServiceGrpc.RPCServiceFutureStub> rpcFutureMethod;
 
     @Override
     public void sendVoteRequest() {
-        NodeManager.printLog("sendVoteRequest......");
-
         // 构建请求投票包
         VoteRequest voteRequest = VoteRequest.newBuilder()
                 .setTerm(NodeManager.node.getCurrentTerm())
@@ -75,42 +64,52 @@ public class ZRaftService implements IZRaftService {
         if (rpcFutureMethod == null) {
             rpcMethodInit();
         }
+
         int l = rpcFutureMethod.size();
-        List<ListenableFuture<ZRaftResponse>> queue = new ArrayList<>(l);
+        boolean heart = appendRequest.getEntriesCount() == 0;
+
+        // 本次的结果链表
+        List<ListenableFuture<ZRaftResponse>> queue = new ArrayList<>();
+
         for (int i = 0; i < l; i++) {
             RPCServiceGrpc.RPCServiceFutureStub futureStub =
                     rpcFutureMethod.get(i);
 
             ListenableFuture<ZRaftResponse> future =
                     futureStub.appendEntries(appendRequest);
-            queue.add(future);
-            future.addListener(new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (queue) {
-                        int n = queue.size();
-                        for (int j = 0; j < n; j++) {
-                            ListenableFuture<ZRaftResponse> response = queue.get(j);
-                            if (response.isDone()) {
-                                // 记录AppendEntries的结果
+
+            if (!heart) {
+                // 如果不是心跳包
+                // 添加监听事件，方便消息重发
+                queue.add(future);
+                future.addListener(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (queue) {
+                            int n = queue.size();
+                            for (int j = 0; j < n; j++) {
+                                ListenableFuture<ZRaftResponse> response = queue.get(j);
+                                if (response.isDone()) {
+                                    // 记录AppendEntries的结果
+                                }
                             }
                         }
                     }
-                }
-            }, Executors.newFixedThreadPool(l));
+                }, Executors.newFixedThreadPool(l));
+            }
         }
     }
 
     @Override
-    public void levelUp() {
+    public synchronized void levelUp() {
         Node.NodeState state = NodeManager.node.getNodeState();
         if (state == Node.NodeState.FOLLOWER) {
             NodeManager.printLog("to be candidate......");
             // 1. 将当前节点设置设置为Candidate并为自己投票
             startNewTerm();
+
             // 2. 向其他节点发送RPC请求投票
             sendVoteRequest();
-
         } else if (state == Node.NodeState.CANDIDATE) {
             NodeManager.printLog("to be Leader......");
             // 修改状态
@@ -121,29 +120,28 @@ public class ZRaftService implements IZRaftService {
             NodeManager.heartListener.start();
             NodeManager.electionListener.stop();
         }
+        NodeManager.printNodeLog();
     }
 
     @Override
-    public void levelDown(AppendRequest request) {
+    public synchronized void levelDown(AppendRequest request) {
         Node.NodeState state = NodeManager.node.getNodeState();
-        if (state == Node.NodeState.FOLLOWER) {
-            updateEntries(request.getEntriesList());
-            return;
-        }
 
         if (state == Node.NodeState.LEADER) {
             NodeManager.printLog("Leader level down......");
-            // 关闭心跳计时器、更新数据并开启等待计时器
+            // 关闭心跳计时器
             NodeManager.heartListener.stop();
         } else {
             NodeManager.printLog("Candidate level down......");
         }
         // 更新节点任期信息
         updateNodeTermInfo(request);
-        // 更新条目
-        updateEntries(request.getEntriesList());
-        // 开启等待计时器，如果计时器以及开启了，会重置上一个心跳时间和等待时间
+
+        // (开启 / 重置)等待计时器。
+        // 如果计时器已经开启了，会重置上一个心跳时间和等待时间
         NodeManager.electionListener.start();
+
+        NodeManager.printNodeLog();
     }
 
     /**
@@ -151,8 +149,7 @@ public class ZRaftService implements IZRaftService {
      * @param request       请求数据
      */
     @Override
-    public void updateNodeTermInfo(AppendRequest request) {
-        // TODO: 2021/11/18 貌似可以了？
+    public synchronized void updateNodeTermInfo(AppendRequest request) {
         long leaderId = request.getLeaderId();
         NodeManager.node.setTermNum(request.getTerm());
         NodeManager.node.setLeaderId(request.getLeaderId());
@@ -167,8 +164,8 @@ public class ZRaftService implements IZRaftService {
      * @param request       请求数据
      */
     @Override
-    public void updateNodeTermInfo(VoteRequest request) {
-        // TODO: 2021/11/18 貌似可以了？
+    public synchronized void updateNodeTermInfo(VoteRequest request) {
+
         NodeManager.node.setTermNum(request.getTerm());
         NodeManager.node.setLeaderId(0);
         NodeManager.node.setVotedFor(request.getCandidateId());
@@ -191,14 +188,6 @@ public class ZRaftService implements IZRaftService {
         NodeManager.node.setLeaderId(0);
         // 重置等待超时器
         NodeManager.electionListener.updatePreHeartTime(System.currentTimeMillis());
-    }
-
-    /**
-     * 更新条目信息
-     * @param entries       新增的条目数据
-     */
-    private void updateEntries(ProtocolStringList entries) {
-        // TODO: 2021/11/18 还未实现新增条目信息
     }
 
     /**

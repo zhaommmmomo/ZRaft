@@ -1,9 +1,12 @@
 package com.zmm.zraft;
 
+import com.zmm.zraft.gRpc.Entry;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 任期
@@ -26,14 +29,13 @@ public class Term {
     /**
      * 当前任期的leaderId。
      * 0：还没有Leader
-     * -1：自己就是Leader
      */
     private long leaderId = 0;
 
     /**
      * 当前任期内收到的命令
      */
-    private final List<List<String>> log = new ArrayList<>();
+    private List<Entry> log = new ArrayList<>();
 
     /**
      * 最后一个已提交命令的索引
@@ -52,7 +54,68 @@ public class Term {
         this.currentTerm++;
     }
 
-    public int getLastLogTerm() {
-        return log.size();
+    /**
+     * 获取当前节点的日志任期条目
+     * @return                  当前节点的日志任期条目
+     */
+    public long getLastLogTerm() {
+        if (logIndex == 0) {
+            return 0;
+        }
+        return log.get((int) (logIndex - 1)).getTerm();
+    }
+
+    /**
+     * 判断条目是否存在
+     * @param preLogTerm        最后一个条目的任期
+     * @param preLogIndex       最后一个条目的索引
+     * @return                  true / false
+     */
+    public boolean entryIsExist(long preLogTerm, long preLogIndex) {
+
+        if (logIndex < preLogIndex) {
+            // 如果当前节点条目索引小于Leader的条目索引
+            return false;
+        }
+
+        if (preLogIndex == 0) {
+            // 如果Leader的索引为0，直接返回true
+            return true;
+        }
+
+        // 是否能在条目中找到
+        return log.get((int) preLogIndex - 1).getTerm() == preLogTerm;
+    }
+
+    /**
+     * 添加日志条目
+     * @param preLogIndex       最后一个条目的索引
+     * @param entries           指定条目
+     * @return                  true / false
+     */
+    public synchronized boolean addLogEntries(long preLogIndex, List<Entry> entries) {
+
+        // 如果当前节点的日志索引大于Leader的（冲突）
+        // 将本地冲突的索引删除
+        if (logIndex > preLogIndex) {
+            log = log.subList(0, (int) preLogIndex);
+        }
+
+        // 追加条目
+        boolean flag = log.addAll(entries);
+        logIndex = log.size();
+        return flag;
+    }
+
+    /**
+     * 提交日志
+     * 将提交索引设置为min(leaderCommit, logIndex)
+     * @param commitIndex   需要提交的索引末位置
+     * @return              true / false
+     */
+    public synchronized boolean commitLog(long commitIndex) {
+        this.commitIndex = Math.min(commitIndex, logIndex);
+        // 执行存储逻辑
+        return true;
     }
 }

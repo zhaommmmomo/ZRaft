@@ -37,9 +37,8 @@ public class HeartListener implements Runnable{
 
     @Override
     public void run() {
-        System.out.println("start HeartListener......");
         while (!stop) {
-            System.out.println("sent Heart......");
+            NodeManager.printLog("sent heart...");
             // 发送心跳包
             zRaftService.sendAppendEntries(createHeartPacket());
 
@@ -50,7 +49,6 @@ public class HeartListener implements Runnable{
                 throw new RuntimeException(e);
             }
         }
-        System.out.println("stop HeartListener......");
     }
 
     /**
@@ -63,7 +61,6 @@ public class HeartListener implements Runnable{
                 .setLeaderId(NodeManager.node.getId())
                 .setPreLogIndex(NodeManager.node.getLogIndex())
                 .setPreLogTerm(NodeManager.node.getLastLogTerm())
-                .addEntries("")
                 .setLeaderCommit(NodeManager.node.getCommitIndex())
                 .build();
     }

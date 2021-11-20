@@ -10,11 +10,6 @@ import com.zmm.zraft.gRpc.VoteRequest;
 public interface IZRaftService {
 
     /**
-     * 开启选举
-     */
-    void startElection();
-
-    /**
      * 发送选举请求
      */
     void sendVoteRequest();
@@ -38,7 +33,15 @@ public interface IZRaftService {
      */
     void levelDown(AppendRequest request);
 
-    void updateNodeTermInfo(AppendRequest request);
-
+    /**
+     * 修改当前节点任期信息
+     * @param request               投票数据
+     */
     void updateNodeTermInfo(VoteRequest request);
+
+    /**
+     * 修改当前节点任期信息
+     * @param request               新增条目数据
+     */
+    void updateNodeTermInfo(AppendRequest request);
 }

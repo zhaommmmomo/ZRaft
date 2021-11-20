@@ -56,7 +56,6 @@ public class ElectionListener implements Runnable{
 
     @Override
     public void run() {
-        System.out.println("start ElectionListener......");
         while (!stop) {
             // 节点刚启动的时候不会进入该逻辑里面
             // 会有一个等待超时时间
@@ -69,15 +68,14 @@ public class ElectionListener implements Runnable{
                 // 如果不修改的话，会一直sendVoteRequest()
                 preHeartTime = t;
                 // 触发开始选举逻辑
-                zRaftService.startElection();
+                zRaftService.levelUp();
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(100);
+                TimeUnit.MILLISECONDS.sleep(10);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
-        System.out.println("stop ElectionListener......");
     }
 
     /**

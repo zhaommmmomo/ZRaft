@@ -1,13 +1,14 @@
 package com.zmm.zraft.service.impl;
 
+
+import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.Node;
-import com.zmm.zraft.gRpc.AppendRequest;
-import com.zmm.zraft.gRpc.RPCServiceGrpc;
-import com.zmm.zraft.gRpc.VoteRequest;
-import com.zmm.zraft.gRpc.ZRaftResponse;
 import com.zmm.zraft.NodeManager;
+import com.zmm.zraft.gRpc.*;
 import com.zmm.zraft.service.IZRaftService;
 import io.grpc.stub.StreamObserver;
+
+import java.util.List;
 
 /**
  * RPC方法类
@@ -38,8 +39,8 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
      *                              lastLogTerm:    候选人最后日志条目的任期号
      *                          }
      * ZRaftResponse            {
-     *                              "term": 当前任期号
-     *                              "voteGranted": true / false
+     *                              "term":         当前任期号
+     *                              "voteGranted":  true / false
      *                                              是否被投票
      *                          }
      */
@@ -52,7 +53,6 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
         // 更新等待定时器的时间
         NodeManager.electionListener
                 .updatePreHeartTime(System.currentTimeMillis());
-
 
         ZRaftResponse response = ZRaftResponse.newBuilder()
                                         .setTerm(NodeManager.node.getCurrentTerm())
@@ -79,73 +79,99 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
      *                              leaderCommit:   Leader已提交的最高日志条目的索引
      *                          }
      * ZRaftResponse            {
-     *                              "term": 当前任期
-     *                              "success": true / false。如果Candidate
-     *                              所含有的条目和prevLogIndex以及preLogTerm
-     *                              匹配上，则为true。
+     *                              "term":         当前任期
+     *                              "success":      true / false。如果Candidate
+     *                                              所含有的条目和prevLogIndex以及preLogTerm
+     *                                              匹配上，则为true。
      *                          }
      */
     @Override
     public void appendEntries(AppendRequest request,
                               StreamObserver<ZRaftResponse> responseObserver) {
+        NodeManager.printLog("receive heart...");
+        ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
+                .setTerm(NodeManager.node.getCurrentTerm());
+
+        // 如果currentTerm > term
+        long term = request.getTerm();
+        long currentTerm = NodeManager.node.getCurrentTerm();
+        if (term < currentTerm) {
+            // 返回false
+            builder.setSuccess(false);
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+            return;
+        }
+
         // 更新等待计时器
         NodeManager.electionListener
                 .updatePreHeartTime(System.currentTimeMillis());
 
-        ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
-                .setTerm(NodeManager.node.getCurrentTerm());
-
-        long term = request.getTerm();
-        long currentTerm = NodeManager.node.getCurrentTerm();
+        // 如果term > currentTerm 或者当前节点状态是Candidate
         Node.NodeState state = NodeManager.node.getNodeState();
-
-        if (term < currentTerm) {
-            // 如果当前任期大于请求节点的任期
-            builder.setSuccess(false);
-
-            //if (state == Node.NodeState.LEADER) {
-            //    // 如果当前节点是Leader，不用管
-            //}
-
+        if (term > currentTerm || state == Node.NodeState.CANDIDATE) {
+            // 修改任期状态并切换为Follower
+            zRaftService.levelDown(request);
         } else {
-            // 如果当前任期小于等于请求节点的任期
-            builder.setSuccess(true);
-            System.out.println("receive heart...");
-
-            // 执行降级逻辑，六种情况:
-            // 1. term == currentTerm && state == Follower。
-            //    更新等待时间和数据
-            // 2. term == currentTerm && state == Candidate。
-            //    当前节点选举输了，更新等待时间、任期信息和数据
-            // 3. term == currentTerm && state == Leader。
-            //    不可能出现
-            // 4. term > currentTerm && state == Follower。
-            //    不可能出现
-            // 5. term > currentTerm && state == Candidate。
-            //    更新等待时间、任期信息和数据
-            // 6. term > currentTerm && state == Leader。
-            //    更新任期信息和数据，关闭心跳，
-            //    执行降级逻辑，
-            //levelDown(request);
-
-            // test。只修改信息
-            if (term != currentTerm ||
-                    state == Node.NodeState.CANDIDATE ||
-                    state == Node.NodeState.LEADER) {
-                zRaftService.updateNodeTermInfo(request);
+            // 设置LeaderId
+            long leaderId = NodeManager.node.getLeaderId();
+            if (leaderId == 0) {
+                NodeManager.node.setLeaderId(request.getLeaderId());
             }
         }
 
+        long preLogTerm = request.getPreLogTerm();
+        long preLogIndex = request.getPreLogIndex();
+
+        // 如果Leader日志索引不能在当前节点的索引上找到
+        if (!NodeManager.node.entryIsExist(preLogTerm, preLogIndex)) {
+            // 返回false
+            builder.setSuccess(false);
+            responseObserver.onNext(builder.build());
+            responseObserver.onCompleted();
+            return;
+        }
+
+        boolean b = true;
+
+        // 如果不是心跳包
+        List<Entry> entries = request.getEntriesList();
+        if (entries.size() != 0) {
+            // 添加日志条目
+            b = NodeManager.node.addLogEntries(preLogIndex, entries);
+        }
+
+        // 判断是否要提交条目
+        long leaderCommit = request.getLeaderCommit();
+        long commitIndex = NodeManager.node.getCommitIndex();
+        if (leaderCommit > commitIndex) {
+            // 将提交
+            b = NodeManager.node.commitLog(leaderCommit) && b;
+        }
+
+        builder.setSuccess(b);
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
+    }
+
+    /**
+     * 客户端调用的方法
+     * @param request           指令集
+     */
+    @Override
+    public void sendCommand(Command request, StreamObserver<ZRaftResponse> responseObserver) {
+        ProtocolStringList commandList = request.getCommandList();
+        if (commandList.size() == 0) {
+
+        }
     }
 
     /**
      * 判断当前节点是否投票给候选人
      * 如果候选人的term < currentTerm，不给该候选人投票
      * 如果当前节点没有投票或者投给了候选人并且候选人日志和当前节点一样新，就给该候选人投票
-     * @param request       候选人id
-     * @return              true / false
+     * @param request           候选人id
+     * @return                  true / false
      */
     private synchronized boolean vote(VoteRequest request) {
         long term = request.getTerm();

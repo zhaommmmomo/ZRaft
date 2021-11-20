@@ -1,6 +1,8 @@
 package com.zmm.zraft;
 
+import com.zmm.zraft.gRpc.AppendRequest;
 import com.zmm.zraft.gRpc.RPCServiceGrpc;
+import com.zmm.zraft.gRpc.ZRaftResponse;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
@@ -15,6 +17,9 @@ public class ZRaftClient {
                                     .usePlaintext().build();
 
         RPCServiceGrpc.RPCServiceBlockingStub blockingStub = RPCServiceGrpc.newBlockingStub(channel);
-        System.out.println(blockingStub.requestVote(null));
+
+        for (int i = 0; i < 5; i++) {
+            ZRaftResponse response = blockingStub.appendEntries(AppendRequest.newBuilder().build());
+        }
     }
 }

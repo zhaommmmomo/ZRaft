@@ -7,6 +7,8 @@ option java_package = "com.zmm.zraft.gRpc";
 service RPCService {
     rpc requestVote (VoteRequest) returns (ZRaftResponse) {}
     rpc appendEntries (AppendRequest) returns (ZRaftResponse) {}
+    // 客户端调用方法
+    rpc sendCommand (Command) returns (ZRaftResponse) {}
 }
 //定义消息类型
 message VoteRequest {
@@ -17,21 +19,31 @@ message VoteRequest {
     // candidate最后日志条目的索引
     int64 lastLogIndex = 3;
     // candidate最后日志条目的任期号
-    int32 lastLogTerm = 4;
+    int64 lastLogTerm = 4;
 }
 message AppendRequest {
-    // leader任期
+    // 任期
     int64 term = 1;
     // leaderId
     int64 leaderId = 2;
     // 新日志条目之前的索引
     int64 preLogIndex = 3;
     // 新日志条目之前的日志任期
-    int32 preLogTerm = 4;
+    int64 preLogTerm = 4;
     // 需要保存的日志条目，当内容为空时，是心跳包
-    repeated string entries = 5;
+    repeated Entry entries = 5;
     // leader已提交的日志条目
     int64 leaderCommit = 6;
+}
+message Entry {
+    // 任期
+    int64 term = 1;
+    // 指令
+    string command = 2;
+}
+message Command {
+    // 指令
+    repeated string command = 1;
 }
 message ZRaftResponse {
     // 当前节点的任期
