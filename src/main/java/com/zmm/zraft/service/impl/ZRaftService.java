@@ -5,15 +5,10 @@ import com.zmm.zraft.Node;
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.gRpc.*;
 import com.zmm.zraft.listen.AppendFutureListener;
-import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.listen.VoteFutureListener;
 import com.zmm.zraft.service.IZRaftService;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
 /**
