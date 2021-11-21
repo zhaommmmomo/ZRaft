@@ -13,6 +13,7 @@ import io.grpc.ManagedChannelBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
 /**
@@ -58,14 +59,16 @@ public class ZRaftService implements IZRaftService {
     }
 
     @Override
-    public void sendAppendEntries() {
+    public void sendAppendEntries(int type) {
         if (rpcFutureMethod == null) {
             throw new RuntimeException("rpcFutureMethod not init...");
         }
 
         int size = ZRaftService.rpcFutureMethod.size();
 
-        AppendFutureListener.clear();
+        if (type != 0) {
+            AppendFutureListener.clear();
+        }
 
         for (int i = 0; i < size; i++) {
 
@@ -79,7 +82,6 @@ public class ZRaftService implements IZRaftService {
 
             // 获取需要给该节点发送的entries
             List<Entry> entries = NodeManager.node.getEntriesFromIndex(nextIndex);
-            NodeManager.printLog("send to " + i + ". index: " + nextIndex + " entries: " + entries.toString());
 
             appendBuilder.setPreLogIndex(nextIndex)
                     .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
@@ -93,19 +95,26 @@ public class ZRaftService implements IZRaftService {
             ListenableFuture<ZRaftResponse> future =
                     futureStub.appendEntries(appendBuilder.build());
 
-            // 将结果添加到AppendFutureListener中
-            AppendFutureListener.addFuture(future);
+            if (type != 0) {
+                // 将结果添加到AppendFutureListener中
+                AppendFutureListener.addFuture(future);
 
-            future.addListener(new AppendFutureListener(),
-                    Executors.newFixedThreadPool(1));
+                future.addListener(new AppendFutureListener(),
+                        Executors.newFixedThreadPool(1));
+            }
+
+            // TODO: 2021/11/21 当使用心跳来进行重发，会导致一直给节点发送，
+            //  需要接收true然后将nextIndex修改
         }
 
-        // 开启超时失败
-        AppendFutureListener.response();
+        // 开启返回
+        if (type != 0) {
+            AppendFutureListener.response();
+        }
     }
 
     @Override
-    public void sendHeart(AppendRequest appendRequest) {
+    public synchronized void sendHeart(AppendRequest appendRequest) {
         if (rpcFutureMethod == null) {
             throw new RuntimeException("rpcFutureMethod not init...");
         }
@@ -117,14 +126,21 @@ public class ZRaftService implements IZRaftService {
     }
 
     @Override
-    public void toBeLeader() {
-        // TODO: 2021/11/21 这里需要将nextIndex更新为当前节点的index，然后对各个节点进行一致性校验
+    public synchronized void toBeLeader() {
 
         NodeManager.printLog("to be Leader......");
         // 修改状态
         NodeManager.node.setNodeState(Node.NodeState.LEADER);
         // 设置当前任期的LeaderId
         NodeManager.node.setLeaderId(NodeManager.node.getId());
+        // 修改nextIndex，一致性检测
+        synchronized (NodeManager.nextIndex) {
+            int l  = NodeManager.nextIndex.size();
+            long logIndex = NodeManager.node.getLogIndex();
+            for (int i = 0; i < l; i++) {
+                NodeManager.nextIndex.set(i, (int) logIndex);
+            }
+        }
         // 开启心跳，关闭等待超时器
         NodeManager.heartListener.start();
         NodeManager.electionListener.stop();
@@ -192,7 +208,7 @@ public class ZRaftService implements IZRaftService {
     /**
      * 开始新的任期，当等待时间超时，节点由Follower变为Candidate时调用
      */
-    private void startNewTerm() {
+    private synchronized void startNewTerm() {
         // 增加任期
         NodeManager.node.addTerm();
         // 修改节点状态

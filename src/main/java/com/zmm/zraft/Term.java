@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 任期
@@ -35,7 +36,7 @@ public class Term {
     /**
      * 当前任期内收到的命令
      */
-    private List<Entry> log = new ArrayList<>();
+    private List<Entry> log = new CopyOnWriteArrayList<>();
 
     /**
      * 最后一个已提交命令的索引
@@ -162,7 +163,7 @@ public class Term {
     }
 
     @Override
-    public String toString() {
+    public synchronized String  toString() {
         return "Term{" +
                 "currentTerm=" + currentTerm +
                 ", votedFor=" + votedFor +

@@ -21,8 +21,9 @@ public interface IZRaftService {
 
     /**
      * 给每个节点发送不同的条目
+     * type:0 表示心跳
      */
-    void sendAppendEntries();
+    void sendAppendEntries(int type);
 
     /**
      * 晋升方法

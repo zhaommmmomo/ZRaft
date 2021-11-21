@@ -13,14 +13,12 @@ import java.util.concurrent.TimeUnit;
 public class ZRaftClient {
     public static void main(String[] args) {
         ManagedChannel channel = ManagedChannelBuilder
-                                    .forAddress("127.0.0.1", 8080)
+                                    .forAddress("127.0.0.1", 8081)
                                     .usePlaintext()
-                                    .enableRetry()
-                                    .maxRetryAttempts(3)
                                     .build();
 
         RPCServiceGrpc.RPCServiceBlockingStub blockingStub = RPCServiceGrpc.newBlockingStub(channel);
-        ClientResponse response = blockingStub.sendCommand(Command.newBuilder().addCommand("b").build());
+        ClientResponse response = blockingStub.sendCommand(Command.newBuilder().addCommand("c").build());
         System.out.println(response.toString());
     }
 }

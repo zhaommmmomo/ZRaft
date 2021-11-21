@@ -10,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,6 +80,8 @@ public class AppendFutureListener implements Runnable{
                             int nextIndex = NodeManager.nextIndex.get(i);
                             // 修改该节点的下一个索引值
                             NodeManager.nextIndex.set(i, nextIndex + entriesCount);
+                        } else {
+                            NodeManager.nextIndex.set(i, NodeManager.nextIndex.get(i) - 1);
                         }
                         futureList.set(i, null);
                     } catch (Exception e) {
@@ -117,7 +120,8 @@ public class AppendFutureListener implements Runnable{
     public static synchronized void clear() {
         flag = false;
         count = 1;
-        futureList = new ArrayList<>();
+        futureList.clear();
+        futureList = new CopyOnWriteArrayList<>();
     }
 
     /**

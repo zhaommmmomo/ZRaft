@@ -39,7 +39,7 @@ public class HeartListener implements Runnable{
     public void run() {
         while (!stop) {
             // 发送心跳包
-            zRaftService.sendHeart(createHeartPacket());
+            zRaftService.sendAppendEntries(0);
 
             // sleep
             try {
@@ -48,20 +48,6 @@ public class HeartListener implements Runnable{
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    /**
-     * 构建心跳包
-     * @return          心跳包
-     */
-    private AppendRequest createHeartPacket() {
-        return AppendRequest.newBuilder()
-                .setTerm(NodeManager.node.getCurrentTerm())
-                .setLeaderId(NodeManager.node.getId())
-                .setPreLogIndex(NodeManager.node.getLogIndex())
-                .setPreLogTerm(NodeManager.node.getLastLogTerm())
-                .setLeaderCommit(NodeManager.node.getCommitIndex())
-                .build();
     }
 
     /**

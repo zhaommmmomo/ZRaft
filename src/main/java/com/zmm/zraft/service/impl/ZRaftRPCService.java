@@ -208,7 +208,7 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
         AppendFutureListener.setEntriesCount(entries.size());
 
         // 发送RPC请求
-        zRaftService.sendAppendEntries();
+        zRaftService.sendAppendEntries(1);
 
         //size = ZRaftService.rpcFutureMethod.size();
         //

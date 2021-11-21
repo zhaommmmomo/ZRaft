@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 负责管理节点、定时器等信息
@@ -40,7 +41,7 @@ public class NodeManager {
     /**
      * 记录需要发送给每个节点条目的索引
      */
-    public static List<Integer> nextIndex;
+    public final static List<Integer> nextIndex = new CopyOnWriteArrayList<>();
 
     /**
      * 等待定时器，Leader不会开启
@@ -60,7 +61,6 @@ public class NodeManager {
 
         ZRaftService.rpcFutureMethod = new ArrayList<>();
         int l = otherNodes.size();
-        nextIndex = new ArrayList<>(l);
         allNodeCounts += l;
         for (Integer otherNode : otherNodes) {
             ManagedChannel channel = ManagedChannelBuilder

@@ -36,7 +36,7 @@ public class ElectionListener implements Runnable{
     /**
      * 当前等待超时时间
      */
-    private static int currentTimeOut = 300;
+    private static int currentTimeOut = 500;
 
     /**
      * 等待超时线程
@@ -51,12 +51,16 @@ public class ElectionListener implements Runnable{
     public ElectionListener () {
         // 初始化上一个心跳包接收到的时间和等待超时时间
         updatePreHeartTime(System.currentTimeMillis());
-        createRandomTime();
     }
 
     @Override
     public void run() {
         while (!stop) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
             // 节点刚启动的时候不会进入该逻辑里面
             // 会有一个等待超时时间
             // 如果当前时间 - 上一个心跳包接收到的时间 > 当前超时时间
@@ -69,11 +73,6 @@ public class ElectionListener implements Runnable{
                 updatePreHeartTime(t);
                 // 触发开始选举逻辑
                 zRaftService.toBeCandidate();
-            }
-            try {
-                TimeUnit.MILLISECONDS.sleep(100);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
         }
     }

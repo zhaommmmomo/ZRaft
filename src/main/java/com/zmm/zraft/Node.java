@@ -59,7 +59,7 @@ public class Node {
         term.addCurrentTerm();
     }
 
-    public void setTermNum(long termNum) {
+    public synchronized void setTermNum(long termNum) {
         term.setCurrentTerm(termNum);
     }
 
@@ -71,7 +71,7 @@ public class Node {
         return term.getVotedFor();
     }
 
-    public void setVotedFor(long votedFor) {
+    public synchronized void setVotedFor(long votedFor) {
         term.setVotedFor(votedFor);
     }
 
@@ -79,7 +79,7 @@ public class Node {
         return term.getLeaderId();
     }
 
-    public void setLeaderId(long leaderId) {
+    public synchronized void setLeaderId(long leaderId) {
         term.setLeaderId(leaderId);
     }
 
@@ -99,7 +99,7 @@ public class Node {
         return nodeState;
     }
 
-    public void setNodeState(NodeState nodeState) {
+    public synchronized void setNodeState(NodeState nodeState) {
         this.nodeState = nodeState;
     }
 
