@@ -93,7 +93,6 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
     @Override
     public void appendEntries(AppendRequest request,
                               StreamObserver<ZRaftResponse> responseObserver) {
-        NodeManager.printLog("receive heart...");
         ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
                 .setTerm(NodeManager.node.getCurrentTerm());
 
@@ -144,6 +143,7 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
         if (entries.size() != 0) {
             // 添加日志条目
             b = NodeManager.node.addLogEntries(preLogIndex, entries);
+            NodeManager.printLog(NodeManager.node.toString());
         }
 
         // 判断是否要提交条目

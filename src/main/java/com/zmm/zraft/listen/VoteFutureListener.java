@@ -43,6 +43,8 @@ public class VoteFutureListener implements Runnable{
                             voteCount++;
                             if (voteCount > NodeManager.allNodeCounts / 2) {
 
+                                NodeManager.printLog("voteCount: " + voteCount);
+                                NodeManager.printLog("allNodeCounts: " + NodeManager.allNodeCounts);
 
                                 // 清空FutureTask数据，确保里面没有因宕机每响应的Future
                                 voteCount = 0;
@@ -50,31 +52,17 @@ public class VoteFutureListener implements Runnable{
 
                                 // 如果当前的票数超过了一半，触发Leader逻辑
                                 // 变为Leader，发送心跳包，设置不会出现等待超时
-                                zRaftService.levelUp();
+                                zRaftService.toBeLeader();
                                 NodeManager.printNodeLog();
                                 break;
                             }
 
-                        } else {
-                            //// 获取投票者的任期
-                            //long term = zRaftResponse.getTerm();
-                            //if (term > NodeManager.node.getCurrentTerm()) {
-                            //    // 如果投票者的任期大于当前任期
-                            //    // 不用管这个情况，因为任期大的
-                            //    // 一定会成为Leader。
-                            //}
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                     queue.remove(future);
-                    if (l == 1) {
-
-
-                        // 代表当前元素是最后一个
-                        // TODO: 2021/11/17 貌似这里不用判断是否是最后一个
-                        voteCount = 0;
-                    }
+                    voteCount = 0;
                     break;
                 }
             }

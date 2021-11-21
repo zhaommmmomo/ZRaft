@@ -10,6 +10,7 @@ import io.grpc.stub.StreamObserver;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zmm
@@ -20,7 +21,7 @@ public class AppendFutureListener implements Runnable{
     /**
      * 用于记录是哪一个节点返回的future
      */
-    private static final List<ListenableFuture<ZRaftResponse>> futureList = new ArrayList<>();
+    private static List<ListenableFuture<ZRaftResponse>> futureList = new ArrayList<>();
 
     /**
      * 用于记录集群中append成功的节点数
@@ -38,9 +39,17 @@ public class AppendFutureListener implements Runnable{
     private static int entriesCount = 0;
 
     /**
+     * 是否成功返回
+     */
+    private volatile static boolean flag = false;
+
+    /**
      * 返回器
      */
     public static StreamObserver<ClientResponse> responseObserver;
+
+    public static ClientResponse.Builder res =
+            ClientResponse.newBuilder().setLeaderId(NodeManager.node.getLeaderId());
 
     /**
      * method
@@ -62,12 +71,10 @@ public class AppendFutureListener implements Runnable{
                             if (count > NodeManager.allNodeCounts / 2) {
                                 // 如果集群中大多数的节点都append成功
                                 // 将结果返回给用户
-                                ClientResponse response = ClientResponse.newBuilder()
-                                        .setSuccess(true)
-                                        .setLeaderId(NodeManager.node.getLeaderId())
-                                        .build();
-                                responseObserver.onNext(response);
-                                responseObserver.onCompleted();
+
+                                NodeManager.printLog("大多数的节点响应true......");
+                                count = 1;
+                                flag = true;
                             }
                             int nextIndex = NodeManager.nextIndex.get(i);
                             // 修改该节点的下一个索引值
@@ -96,6 +103,7 @@ public class AppendFutureListener implements Runnable{
      */
     public static void setEntriesCount(int count) {
         entriesCount = count;
+        flag = false;
     }
 
     /**
@@ -104,5 +112,27 @@ public class AppendFutureListener implements Runnable{
      */
     public static synchronized void addFuture(ListenableFuture<ZRaftResponse> future) {
         futureList.add(future);
+    }
+
+    public static synchronized void clear() {
+        flag = false;
+        count = 1;
+        futureList = new ArrayList<>();
+    }
+
+    /**
+     * 开启失败监听
+     */
+    public static void response() {
+        new Thread(() -> {
+            try {
+                TimeUnit.SECONDS.sleep(1);
+                res.setSuccess(flag);
+                responseObserver.onNext(res.build());
+                responseObserver.onCompleted();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

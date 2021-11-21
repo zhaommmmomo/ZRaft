@@ -2,6 +2,7 @@ package com.zmm.test;
 
 import com.zmm.zraft.NodeManager;
 import com.zmm.zraft.service.impl.ZRaftRPCService;
+import com.zmm.zraft.service.impl.ZRaftService;
 import io.grpc.ServerBuilder;
 
 import java.util.ArrayList;
@@ -26,11 +27,10 @@ public class Application8080 {
             List<Integer> nodes = new ArrayList<>();
             nodes.add(8081);
             nodes.add(8082);
-            nodes.add(8083);
             //启动服务
             io.grpc.Server server = ServerBuilder.forPort(8080).addService(new ZRaftRPCService()).build();
             server.start();
-            NodeManager.otherNodes = nodes;
+            NodeManager.init(nodes);
             server.awaitTermination();
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -36,7 +36,7 @@ public class ElectionListener implements Runnable{
     /**
      * 当前等待超时时间
      */
-    private static int currentTimeOut;
+    private static int currentTimeOut = 300;
 
     /**
      * 等待超时线程
@@ -50,8 +50,8 @@ public class ElectionListener implements Runnable{
 
     public ElectionListener () {
         // 初始化上一个心跳包接收到的时间和等待超时时间
-        preHeartTime = System.currentTimeMillis();
-        currentTimeOut = random.nextInt(TIME) + TIME;
+        updatePreHeartTime(System.currentTimeMillis());
+        createRandomTime();
     }
 
     @Override
@@ -63,19 +63,26 @@ public class ElectionListener implements Runnable{
             long t = System.currentTimeMillis();
             if (t - preHeartTime >= currentTimeOut) {
                 // 随机生成超时时间
-                currentTimeOut = random.nextInt(TIME) + TIME;
+                createRandomTime();
                 // 修改上次心跳的时间，重置等待超时器
                 // 如果不修改的话，会一直sendVoteRequest()
-                preHeartTime = t;
+                updatePreHeartTime(t);
                 // 触发开始选举逻辑
-                zRaftService.levelUp();
+                zRaftService.toBeCandidate();
             }
             try {
-                TimeUnit.MILLISECONDS.sleep(10);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /**
+     * 随机超时数
+     */
+    private synchronized void createRandomTime() {
+        currentTimeOut = random.nextInt(TIME) + TIME;
     }
 
     /**

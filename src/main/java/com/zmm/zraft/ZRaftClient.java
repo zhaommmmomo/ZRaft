@@ -1,10 +1,10 @@
 package com.zmm.zraft;
 
-import com.zmm.zraft.gRpc.AppendRequest;
-import com.zmm.zraft.gRpc.RPCServiceGrpc;
-import com.zmm.zraft.gRpc.ZRaftResponse;
+import com.zmm.zraft.gRpc.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zmm
@@ -14,12 +14,13 @@ public class ZRaftClient {
     public static void main(String[] args) {
         ManagedChannel channel = ManagedChannelBuilder
                                     .forAddress("127.0.0.1", 8080)
-                                    .usePlaintext().build();
+                                    .usePlaintext()
+                                    .enableRetry()
+                                    .maxRetryAttempts(3)
+                                    .build();
 
         RPCServiceGrpc.RPCServiceBlockingStub blockingStub = RPCServiceGrpc.newBlockingStub(channel);
-
-        for (int i = 0; i < 5; i++) {
-            ZRaftResponse response = blockingStub.appendEntries(AppendRequest.newBuilder().build());
-        }
+        ClientResponse response = blockingStub.sendCommand(Command.newBuilder().addCommand("b").build());
+        System.out.println(response.toString());
     }
 }

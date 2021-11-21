@@ -24,7 +24,7 @@ public class NodeManager {
     /**
      * 当前节点信息
      */
-    public static final Node node;
+    public static Node node;
 
     /**
      * 集群中所有节点的数量
@@ -45,17 +45,33 @@ public class NodeManager {
     /**
      * 等待定时器，Leader不会开启
      */
-    public static final ElectionListener electionListener;
+    public static ElectionListener electionListener;
 
     /**
      * 心跳定时器，Leader开启
      */
     public static HeartListener heartListener;
 
-    static {
+    public static void init(List<Integer> nodes) {
         System.out.println("==========初始化节点=============");
         // 初始化节点信息
         node = new Node();
+        otherNodes = nodes;
+
+        ZRaftService.rpcFutureMethod = new ArrayList<>();
+        int l = otherNodes.size();
+        nextIndex = new ArrayList<>(l);
+        allNodeCounts += l;
+        for (Integer otherNode : otherNodes) {
+            ManagedChannel channel = ManagedChannelBuilder
+                    .forAddress("127.0.0.1",
+                            otherNode)
+                    .usePlaintext()
+                    .build();
+            ZRaftService.rpcFutureMethod.add(RPCServiceGrpc.newFutureStub(channel));
+
+            nextIndex.add(0);
+        }
         // 启动等待定时器
         electionListener = new ElectionListener();
         heartListener = new HeartListener();
@@ -75,6 +91,7 @@ public class NodeManager {
         System.out.println("nodeState: " + node.getNodeState());
         System.out.println("votedFor: " + node.getVotedFor());
         System.out.println("leaderId: " + node.getLeaderId());
+        System.out.println("allNodeCOunt: " + allNodeCounts);
         System.out.println("=======================================");
     }
 }

@@ -103,6 +103,15 @@ public class Node {
         this.nodeState = nodeState;
     }
 
+    @Override
+    public String toString() {
+        return "Node{" +
+                "id=" + id +
+                ", nodeState=" + nodeState +
+                ", term=" + term.toString() +
+                '}';
+    }
+
     public enum NodeState {
         FOLLOWER, CANDIDATE, LEADER
     }

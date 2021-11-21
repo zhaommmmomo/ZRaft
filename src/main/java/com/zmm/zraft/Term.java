@@ -160,4 +160,16 @@ public class Term {
         }
         return log.subList((int) nextIndex, (int) logIndex);
     }
+
+    @Override
+    public String toString() {
+        return "Term{" +
+                "currentTerm=" + currentTerm +
+                ", votedFor=" + votedFor +
+                ", leaderId=" + leaderId +
+                ", log=" + log.toString() +
+                ", commitIndex=" + commitIndex +
+                ", logIndex=" + logIndex +
+                '}';
+    }
 }

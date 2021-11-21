@@ -17,7 +17,7 @@ public interface IZRaftService {
     /**
      * 给每个节点发送相同的条目
      */
-    void sendAppendEntries(AppendRequest appendRequest);
+    void sendHeart(AppendRequest appendRequest);
 
     /**
      * 给每个节点发送不同的条目
@@ -26,10 +26,15 @@ public interface IZRaftService {
 
     /**
      * 晋升方法
-     * Follower -> Candidate
      * Candidate -> Leader
      */
-    void levelUp();
+    void toBeLeader();
+
+    /**
+     * 晋升方法
+     * Follower -> Candidate
+     */
+    void toBeCandidate();
 
     /**
      * 降级方法
