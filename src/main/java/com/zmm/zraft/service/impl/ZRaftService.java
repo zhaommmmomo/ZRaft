@@ -101,7 +101,6 @@ public class ZRaftService implements IZRaftService {
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
             } else {
-                // TODO: 2021/11/22 需要通过Append一次才能触发，不能直接变为Leader然后机器启动来检测 
                 if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 && !NodeManager.map.containsKey(future)) {
                     NodeManager.map.put(future, i);
                     future.addListener(new Runnable() {
@@ -162,7 +161,8 @@ public class ZRaftService implements IZRaftService {
             int l  = NodeManager.nextIndex.size();
             long logIndex = NodeManager.node.getLogIndex();
             for (int i = 0; i < l; i++) {
-                NodeManager.nextIndex.set(i, (int) logIndex);
+                int n = logIndex > 0 ? (int) (logIndex - 1) : 0;
+                NodeManager.nextIndex.set(i, n);
             }
         }
         // 开启心跳，关闭等待超时器

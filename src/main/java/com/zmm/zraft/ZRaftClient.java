@@ -18,7 +18,7 @@ public class ZRaftClient {
                                     .build();
 
         RPCServiceGrpc.RPCServiceBlockingStub blockingStub = RPCServiceGrpc.newBlockingStub(channel);
-        ClientResponse response = blockingStub.sendCommand(Command.newBuilder().addCommand("c").build());
+        ClientResponse response = blockingStub.sendCommand(Command.newBuilder().addCommand("b").build());
         System.out.println(response.toString());
     }
 }
