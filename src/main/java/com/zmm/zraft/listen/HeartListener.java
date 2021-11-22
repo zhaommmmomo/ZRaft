@@ -22,7 +22,7 @@ public class HeartListener implements Runnable{
     /**
      * 心跳超时时间
      */
-    private static long TIMEOUT = 50;
+    private static long TIMEOUT = 800;
 
     /**
      * 心跳线程

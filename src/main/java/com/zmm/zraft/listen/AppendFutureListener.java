@@ -69,8 +69,11 @@ public class AppendFutureListener implements Runnable{
                                 flag = true;
                             }
                             // 修改该节点的下一个索引值
-                            NodeManager.nextIndex.set(i, nextIndex + entriesCount.get(i));
+                            int x = nextIndex + entriesCount.get(i);
+                            NodeManager.nextIndex.set(i, x);
+                            NodeManager.printLog("节点" + i + "的nextIndex: " + x);
                         } else {
+                            NodeManager.printLog("节点" + i + "的nextIndex: " + (nextIndex - 1));
                             NodeManager.nextIndex.set(i, Math.max(nextIndex - 1, 0));
                         }
                         entriesCount.set(i, 0);
@@ -123,6 +126,10 @@ public class AppendFutureListener implements Runnable{
     public static synchronized void clear() {
         flag = false;
         count = 1;
+        //int size = entriesCount.size();
+        //for (int i = 0; i < size; i++) {
+        //    entriesCount.set(i, 0);
+        //}
         futureList.clear();
         futureList = new CopyOnWriteArrayList<>();
     }

@@ -26,7 +26,7 @@ public class ElectionListener implements Runnable{
     /**
      * 基础超时时间
      */
-    private final static int TIME = 150;
+    private final static int TIME = 1500;
 
     /**
      * 上一个心跳包接收到的时间，只有当接收到心跳包时才会被修改
@@ -36,7 +36,7 @@ public class ElectionListener implements Runnable{
     /**
      * 当前等待超时时间
      */
-    private static int currentTimeOut = 200;
+    private static int currentTimeOut = 300;
 
     /**
      * 等待超时线程
@@ -51,6 +51,7 @@ public class ElectionListener implements Runnable{
     public ElectionListener () {
         // 初始化上一个心跳包接收到的时间和等待超时时间
         updatePreHeartTime(System.currentTimeMillis());
+        createRandomTime();
     }
 
     @Override

@@ -93,6 +93,9 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
     @Override
     public void appendEntries(AppendRequest request,
                               StreamObserver<ZRaftResponse> responseObserver) {
+
+        NodeManager.printLog("appendEntries...");
+
         ZRaftResponse.Builder builder = ZRaftResponse.newBuilder()
                 .setTerm(NodeManager.node.getCurrentTerm());
 

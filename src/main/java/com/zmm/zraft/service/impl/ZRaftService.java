@@ -9,8 +9,6 @@ import com.zmm.zraft.listen.VoteFutureListener;
 import com.zmm.zraft.service.IZRaftService;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
@@ -81,12 +79,13 @@ public class ZRaftService implements IZRaftService {
             List<Entry> entries = NodeManager.node.getEntriesFromIndex(nextIndex);
             // 添加条目个数
             final int n = entries.size();
-            AppendFutureListener.setEntriesCount(i, n);
+            if (type != 0) {
+                AppendFutureListener.setEntriesCount(i, n);
+            }
             // 获取需要给该节点发送的entries
             appendBuilder.setPreLogIndex(nextIndex)
                     .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
                     .addAllEntries(entries);
-
 
             RPCServiceGrpc.RPCServiceFutureStub futureStub =
                     ZRaftService.rpcFutureMethod.get(i);
@@ -102,6 +101,7 @@ public class ZRaftService implements IZRaftService {
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
             } else {
+                // TODO: 2021/11/22 需要通过Append一次才能触发，不能直接变为Leader然后机器启动来检测 
                 if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 && !NodeManager.map.containsKey(future)) {
                     NodeManager.map.put(future, i);
                     future.addListener(new Runnable() {
@@ -112,10 +112,14 @@ public class ZRaftService implements IZRaftService {
                                     int index = NodeManager.map.get(future);
                                     int nextIndex = NodeManager.nextIndex.get(index);
                                     if (future.get().getSuccess()) {
+                                        int x = nextIndex + n;
+                                        NodeManager.printLog("节点" + index + "的nextIndex: " + x);
                                         NodeManager.nextIndex.set(index, nextIndex + n);
                                     } else {
+                                        NodeManager.printLog("节点" + index + "的nextIndex: " + (nextIndex - 1));
                                         NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
                                     }
+
                                     NodeManager.map.remove(future);
                                 }
                             } catch (Exception e) {

@@ -20,7 +20,7 @@ public class Application8081 {
                 if (System.currentTimeMillis() > Test.time) {
                     break;
                 }
-                TimeUnit.MILLISECONDS.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(10);
             }
 
             List<Integer> nodes = new ArrayList<>();
