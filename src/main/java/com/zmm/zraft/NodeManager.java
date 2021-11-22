@@ -1,6 +1,9 @@
 package com.zmm.zraft;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.zmm.zraft.gRpc.RPCServiceGrpc;
+import com.zmm.zraft.gRpc.ZRaftResponse;
+import com.zmm.zraft.listen.AppendFutureListener;
 import com.zmm.zraft.listen.ElectionListener;
 import com.zmm.zraft.listen.HeartListener;
 import com.zmm.zraft.service.impl.ZRaftService;
@@ -11,6 +14,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -44,6 +49,11 @@ public class NodeManager {
     public final static List<Integer> nextIndex = new CopyOnWriteArrayList<>();
 
     /**
+     * 需要重发的节点
+     */
+    public static final Map<ListenableFuture<ZRaftResponse>, Integer> map = new ConcurrentHashMap<>();
+
+    /**
      * 等待定时器，Leader不会开启
      */
     public static ElectionListener electionListener;
@@ -71,6 +81,7 @@ public class NodeManager {
             ZRaftService.rpcFutureMethod.add(RPCServiceGrpc.newFutureStub(channel));
 
             nextIndex.add(0);
+            AppendFutureListener.addEntriesCount(0);
         }
         // 启动等待定时器
         electionListener = new ElectionListener();

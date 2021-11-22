@@ -142,7 +142,8 @@ public class Term {
             return 0;
         }
         if (nextIndex > logIndex) {
-            throw new RuntimeException("索引越界......");
+            //throw new RuntimeException("索引越界......");
+            NodeManager.printLog("logIndex: " + logIndex + " nextIndex: "+ nextIndex + " 索引越界......");
         }
         return log.get((int) (nextIndex - 1)).getTerm();
     }
@@ -154,7 +155,7 @@ public class Term {
      */
     public synchronized List<Entry> getEntriesFromIndex(long nextIndex) {
         if (nextIndex > logIndex) {
-            return null;
+            return new CopyOnWriteArrayList<>();
         }
         if (nextIndex <= 0) {
             return log;

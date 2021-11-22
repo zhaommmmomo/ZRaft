@@ -9,6 +9,8 @@ import com.zmm.zraft.listen.VoteFutureListener;
 import com.zmm.zraft.service.IZRaftService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
@@ -75,9 +77,12 @@ public class ZRaftService implements IZRaftService {
             // 获取需要发送的一下个条目的索引
             int nextIndex = NodeManager.nextIndex.get(i);
 
-            // 获取需要给该节点发送的entries
-            List<Entry> entries = NodeManager.node.getEntriesFromIndex(nextIndex);
 
+            List<Entry> entries = NodeManager.node.getEntriesFromIndex(nextIndex);
+            // 添加条目个数
+            final int n = entries.size();
+            AppendFutureListener.setEntriesCount(i, n);
+            // 获取需要给该节点发送的entries
             appendBuilder.setPreLogIndex(nextIndex)
                     .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
                     .addAllEntries(entries);
@@ -96,10 +101,30 @@ public class ZRaftService implements IZRaftService {
 
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
+            } else {
+                if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 && !NodeManager.map.containsKey(future)) {
+                    NodeManager.map.put(future, i);
+                    future.addListener(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (future.isDone()) {
+                                    int index = NodeManager.map.get(future);
+                                    int nextIndex = NodeManager.nextIndex.get(index);
+                                    if (future.get().getSuccess()) {
+                                        NodeManager.nextIndex.set(index, nextIndex + n);
+                                    } else {
+                                        NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
+                                    }
+                                    NodeManager.map.remove(future);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, Executors.newFixedThreadPool(1));
+                }
             }
-
-            // TODO: 2021/11/21 当使用心跳来进行重发，会导致一直给节点发送，
-            //  需要接收true然后将nextIndex修改
         }
 
         // 开启返回

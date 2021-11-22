@@ -36,7 +36,7 @@ public class ElectionListener implements Runnable{
     /**
      * 当前等待超时时间
      */
-    private static int currentTimeOut = 500;
+    private static int currentTimeOut = 200;
 
     /**
      * 等待超时线程
@@ -70,7 +70,7 @@ public class ElectionListener implements Runnable{
                 createRandomTime();
                 // 修改上次心跳的时间，重置等待超时器
                 // 如果不修改的话，会一直sendVoteRequest()
-                updatePreHeartTime(t);
+                updatePreHeartTime(t + currentTimeOut * 2);
                 // 触发开始选举逻辑
                 zRaftService.toBeCandidate();
             }

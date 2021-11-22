@@ -121,6 +121,8 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
             long leaderId = NodeManager.node.getLeaderId();
             if (leaderId == 0) {
                 NodeManager.node.setLeaderId(request.getLeaderId());
+                NodeManager.node.setNodeState(Node.NodeState.FOLLOWER);
+                NodeManager.printNodeLog();
             }
         }
 
@@ -203,9 +205,6 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
 
         // 将返回交给AppendFutureListener
         AppendFutureListener.responseObserver = responseObserver;
-
-        // 本次Append的条目数
-        AppendFutureListener.setEntriesCount(entries.size());
 
         // 发送RPC请求
         zRaftService.sendAppendEntries(1);
