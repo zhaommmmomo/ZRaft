@@ -7,4 +7,4 @@ A simple implementation of raft algorithm（Java）
 > <br> 
 > [Raft论文](https://github.com/maemual/raft-zh_cn/blob/master/raft-zh_cn.md)
 > <br>
-> [Raft可视化](http://thesecretlivesofdata.com/raft)
+> [Raft动态展示](http://thesecretlivesofdata.com/raft)
