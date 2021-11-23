@@ -102,38 +102,35 @@ public class ZRaftService implements IZRaftService {
 
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
-            } else {
-                // 通过心跳同步日志条目
+            } else if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 &&
+                    !NodeManager.map.containsKey(future)) {
                 // 如果有需要发送的日志条目并且不是因为Client调用RPC造成的并且这是第一次发送
-                if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 &&
-                        !NodeManager.map.containsKey(future)) {
-                    NodeManager.map.put(future, i);
-                    future.addListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                if (future.isDone()) {
-                                    int index = NodeManager.map.get(future);
-                                    int nextIndex = NodeManager.nextIndex.get(index);
-                                    if (future.get().getSuccess()) {
-                                        // 如果节点同步成功，将该节点的nextIndex修改
-                                        int x = nextIndex + n;
-                                        NodeManager.printLog("节点" + index + "的nextIndex: " + x);
-                                        NodeManager.nextIndex.set(index, nextIndex + n);
-                                    } else {
-                                        // 如果同步失败，则可能是节点不存在nextIndex开始的日志条目
-                                        // 将nextIndex--，然后重新发送
-                                        NodeManager.printLog("节点" + index + "的nextIndex: " + (nextIndex - 1));
-                                        NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
-                                    }
-                                    NodeManager.map.remove(future);
+                NodeManager.map.put(future, i);
+                future.addListener(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            if (future.isDone()) {
+                                int index = NodeManager.map.get(future);
+                                int nextIndex = NodeManager.nextIndex.get(index);
+                                if (future.get().getSuccess()) {
+                                    // 如果节点同步成功，将该节点的nextIndex修改
+                                    int x = nextIndex + n;
+                                    NodeManager.printLog("节点" + index + "的nextIndex: " + x);
+                                    NodeManager.nextIndex.set(index, nextIndex + n);
+                                } else {
+                                    // 如果同步失败，则可能是节点不存在nextIndex开始的日志条目
+                                    // 将nextIndex--，然后重新发送
+                                    NodeManager.printLog("节点" + index + "的nextIndex: " + (nextIndex - 1));
+                                    NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
                                 }
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                NodeManager.map.remove(future);
                             }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    }, Executors.newFixedThreadPool(1));
-                }
+                    }
+                }, Executors.newFixedThreadPool(1));
             }
         }
 

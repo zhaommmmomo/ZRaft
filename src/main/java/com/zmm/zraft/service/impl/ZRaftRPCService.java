@@ -49,11 +49,6 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
                             StreamObserver<ZRaftResponse> responseObserver) {
         // 当节点收到比自己大的任期，会将自己的任期设置为相同的，然后直接投票
         // 当节点收到和自己一样大的任期，会看自己是否已经投票来判断
-
-        // 更新等待定时器的时间
-        NodeManager.electionListener
-                .updatePreHeartTime(System.currentTimeMillis());
-
         ZRaftResponse response = ZRaftResponse.newBuilder()
                                         .setTerm(NodeManager.node.getCurrentTerm())
                                         .setSuccess(vote(request))
@@ -223,6 +218,9 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
         }
 
         if (term > currentTerm) {
+            // 更新等待定时器的时间
+            NodeManager.electionListener
+                    .updatePreHeartTime(System.currentTimeMillis());
             // 修改任期
             zRaftService.updateNodeTermInfo(request);
             return true;
@@ -234,7 +232,11 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
            (votedFor == candidateId &&
            NodeManager.node.getLogIndex() == request.getLastLogIndex() &&
            NodeManager.node.getLastLogTerm() == request.getLastLogTerm())) {
-
+            // 如果当前节点没有投票或者
+            // 给请求者投票了并且日志索引与任期能对应
+            // 更新等待定时器的时间
+            NodeManager.electionListener
+                    .updatePreHeartTime(System.currentTimeMillis());
             NodeManager.node.setLeaderId(0);
             NodeManager.node.setVotedFor(candidateId);
             NodeManager.printNodeInfo();
