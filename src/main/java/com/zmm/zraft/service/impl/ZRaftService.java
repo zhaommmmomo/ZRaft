@@ -10,6 +10,7 @@ import com.zmm.zraft.service.IZRaftService;
 
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 基本方法类
@@ -18,6 +19,7 @@ import java.util.concurrent.Executors;
  */
 public class ZRaftService implements IZRaftService {
 
+    // TODO: 2021/11/23 [Warning] 当某一节点宕机后，gRpc无法找到该节点，就会一直会打印错误信息（心跳）
     /**
      * RPC异步方法
      */
@@ -55,6 +57,7 @@ public class ZRaftService implements IZRaftService {
 
     @Override
     public void sendAppendEntries(int type) {
+
         if (rpcFutureMethod == null) {
             throw new RuntimeException("rpcFutureMethod not init...");
         }
@@ -101,7 +104,8 @@ public class ZRaftService implements IZRaftService {
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
             } else {
-                if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 && !NodeManager.map.containsKey(future)) {
+                if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 &&
+                        !NodeManager.map.containsKey(future)) {
                     NodeManager.map.put(future, i);
                     future.addListener(new Runnable() {
                         @Override
@@ -118,7 +122,6 @@ public class ZRaftService implements IZRaftService {
                                         NodeManager.printLog("节点" + index + "的nextIndex: " + (nextIndex - 1));
                                         NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
                                     }
-
                                     NodeManager.map.remove(future);
                                 }
                             } catch (Exception e) {
@@ -161,8 +164,7 @@ public class ZRaftService implements IZRaftService {
             int l  = NodeManager.nextIndex.size();
             long logIndex = NodeManager.node.getLogIndex();
             for (int i = 0; i < l; i++) {
-                int n = logIndex > 0 ? (int) (logIndex - 1) : 0;
-                NodeManager.nextIndex.set(i, n);
+                NodeManager.nextIndex.set(i, (int) Math.max(logIndex - 1, 0));
             }
         }
         // 开启心跳，关闭等待超时器
@@ -182,14 +184,10 @@ public class ZRaftService implements IZRaftService {
     @Override
     public synchronized void levelDown(AppendRequest request) {
         Node.NodeState state = NodeManager.node.getNodeState();
+        NodeManager.printLog("Level down......");
+        // 关闭心跳计时器
+        NodeManager.heartListener.stop();
 
-        if (state == Node.NodeState.LEADER) {
-            NodeManager.printLog("Leader level down......");
-            // 关闭心跳计时器
-            NodeManager.heartListener.stop();
-        } else {
-            NodeManager.printLog("Candidate level down......");
-        }
         // 更新节点任期信息
         updateNodeTermInfo(request);
 

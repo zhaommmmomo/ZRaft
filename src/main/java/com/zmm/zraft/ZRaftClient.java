@@ -4,8 +4,6 @@ import com.zmm.zraft.gRpc.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * @author zmm
  * @date 2021/11/17 12:44
