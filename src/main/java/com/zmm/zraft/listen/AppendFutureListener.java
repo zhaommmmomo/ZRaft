@@ -63,8 +63,6 @@ public class AppendFutureListener implements Runnable{
                             if (count > NodeManager.allNodeCounts / 2) {
                                 // 如果集群中大多数的节点都append成功
                                 // 将结果返回给用户
-
-                                NodeManager.printLog("大多数的节点响应true......");
                                 count = 1;
                                 flag = true;
                             }
@@ -126,16 +124,15 @@ public class AppendFutureListener implements Runnable{
     public static synchronized void clear() {
         flag = false;
         count = 1;
-        //int size = entriesCount.size();
-        //for (int i = 0; i < size; i++) {
-        //    entriesCount.set(i, 0);
-        //}
         futureList.clear();
         futureList = new CopyOnWriteArrayList<>();
     }
 
     /**
-     * 开启返回监听
+     * 开启返回监听。为什么在这里定时返回？
+     * 因为如果在future的listener里面收到大多数就返回的话，
+     * 在gRpc里面他就会关闭这个响应，接下来如果再调用future.get()
+     * 方法就会导致报错。
      */
     public static void response() {
         new Thread(() -> {

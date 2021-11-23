@@ -63,7 +63,12 @@ public class NodeManager {
      */
     public static HeartListener heartListener;
 
+    /**
+     * 初始化节点
+     * @param nodes         其他节点端口号（因为在本机测试，就用端口了，如果需要ip，可以修改otherNodes的类型）
+     */
     public static void init(List<Integer> nodes) {
+        // TODO: 2021/11/23 需要完成日志预加载逻辑
         System.out.println("==========初始化节点=============");
         // 初始化节点信息
         node = new Node();
@@ -87,14 +92,21 @@ public class NodeManager {
         electionListener = new ElectionListener();
         heartListener = new HeartListener();
         electionListener.start();
-        printNodeLog();
+        printNodeInfo();
     }
 
+    /**
+     * 打印指定消息
+     * @param msg           消息内容
+     */
     public static void printLog(String msg) {
         System.out.println(ft.format(new Date()) + "  " + msg);
     }
 
-    public static void printNodeLog() {
+    /**
+     * 打印节点信息
+     */
+    public static void printNodeInfo() {
         System.out.println("=========  " + ft.format(new Date()) + "  =======");
         System.out.println("==============NodeInfo=================");
         System.out.println("nodeId: " + node.getId());
@@ -102,7 +114,7 @@ public class NodeManager {
         System.out.println("nodeState: " + node.getNodeState());
         System.out.println("votedFor: " + node.getVotedFor());
         System.out.println("leaderId: " + node.getLeaderId());
-        System.out.println("allNodeCOunt: " + allNodeCounts);
+        System.out.println("allNodeCount: " + allNodeCounts);
         System.out.println("=======================================");
     }
 }

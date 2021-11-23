@@ -7,7 +7,7 @@ package com.zmm.test;
  */
 public class Test {
 
-    public static long time = 1637644673550L + 30000;
+    public static long time = 1637645229819L + 20000;
 
     public static void main(String[] args) {
         System.out.println(System.currentTimeMillis());

@@ -15,11 +15,6 @@ public interface IZRaftService {
     void sendVoteRequest();
 
     /**
-     * 给每个节点发送相同的条目
-     */
-    void sendHeart(AppendRequest appendRequest);
-
-    /**
      * 给每个节点发送不同的条目
      * type:0 表示心跳
      */

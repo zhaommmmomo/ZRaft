@@ -53,7 +53,7 @@ public class VoteFutureListener implements Runnable{
                                 // 如果当前的票数超过了一半，触发Leader逻辑
                                 // 变为Leader，发送心跳包，设置不会出现等待超时
                                 zRaftService.toBeLeader();
-                                NodeManager.printNodeLog();
+                                NodeManager.printNodeInfo();
                                 break;
                             }
 
@@ -75,9 +75,5 @@ public class VoteFutureListener implements Runnable{
 
     public static void addFuture(ListenableFuture<ZRaftResponse> future) {
         queue.add(future);
-    }
-
-    public static void clear() {
-        queue.clear();
     }
 }

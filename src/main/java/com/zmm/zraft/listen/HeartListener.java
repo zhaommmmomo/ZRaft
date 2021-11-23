@@ -1,7 +1,5 @@
 package com.zmm.zraft.listen;
 
-import com.zmm.zraft.NodeManager;
-import com.zmm.zraft.gRpc.AppendRequest;
 import com.zmm.zraft.service.IZRaftService;
 import com.zmm.zraft.service.impl.ZRaftService;
 
@@ -22,7 +20,7 @@ public class HeartListener implements Runnable{
     /**
      * 心跳超时时间
      */
-    private static long TIMEOUT = 800;
+    private static long TIMEOUT = 80;
 
     /**
      * 心跳线程

@@ -3,10 +3,7 @@ package com.zmm.zraft;
 import com.zmm.zraft.gRpc.Entry;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -128,7 +125,7 @@ public class Term {
      */
     public synchronized boolean commitLog(long commitIndex) {
         this.commitIndex = Math.min(commitIndex, logIndex);
-        // 执行存储逻辑
+        // TODO: 2021/11/23 未完成存储逻辑
         return true;
     }
 
@@ -142,8 +139,7 @@ public class Term {
             return 0;
         }
         if (nextIndex > logIndex) {
-            //throw new RuntimeException("索引越界......");
-            NodeManager.printLog("logIndex: " + logIndex + " nextIndex: "+ nextIndex + " 索引越界......");
+            throw new RuntimeException("索引越界......");
         }
         return log.get((int) (nextIndex - 1)).getTerm();
     }

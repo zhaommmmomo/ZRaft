@@ -1,7 +1,5 @@
 package com.zmm.zraft.service.impl;
 
-
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.protobuf.ProtocolStringList;
 import com.zmm.zraft.Node;
 import com.zmm.zraft.NodeManager;
@@ -9,11 +7,8 @@ import com.zmm.zraft.gRpc.*;
 import com.zmm.zraft.listen.AppendFutureListener;
 import com.zmm.zraft.service.IZRaftService;
 import io.grpc.stub.StreamObserver;
-import lombok.SneakyThrows;
 
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * RPC方法类
@@ -125,7 +120,7 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
             if (leaderId == 0) {
                 NodeManager.node.setLeaderId(request.getLeaderId());
                 NodeManager.node.setNodeState(Node.NodeState.FOLLOWER);
-                NodeManager.printNodeLog();
+                NodeManager.printNodeInfo();
             }
         }
 
@@ -211,37 +206,6 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
 
         // 发送RPC请求
         zRaftService.sendAppendEntries(1);
-
-        //size = ZRaftService.rpcFutureMethod.size();
-        //
-        //AppendRequest.Builder appendBuilder = AppendRequest.newBuilder()
-        //        .setTerm(currentTerm)
-        //        .setLeaderId(leaderId)
-        //        .setLeaderCommit(NodeManager.node.getCommitIndex());
-        //
-        //for (int i = 0; i < size; i++) {
-        //
-        //    // 获取需要发送的一下个条目的索引
-        //    int nextIndex = NodeManager.nextIndex.get(i);
-        //
-        //    // 获取需要给该节点发送的entries
-        //    appendBuilder.setPreLogIndex(nextIndex - 1)
-        //        .setPreLogTerm(NodeManager.node.getPreTermByIndex(nextIndex))
-        //        .addAllEntries(NodeManager.node.getEntriesFromIndex(nextIndex));
-        //
-        //
-        //    RPCServiceGrpc.RPCServiceFutureStub futureStub =
-        //            ZRaftService.rpcFutureMethod.get(i);
-        //    // 调用AppendEntries方法
-        //    ListenableFuture<ZRaftResponse> future =
-        //            futureStub.appendEntries(appendBuilder.build());
-        //
-        //    // 将结果添加到AppendFutureListener中
-        //    AppendFutureListener.addFuture(future);
-        //
-        //    future.addListener(new AppendFutureListener(),
-        //            Executors.newFixedThreadPool(size));
-        //}
     }
 
     /**
@@ -273,7 +237,7 @@ public class ZRaftRPCService extends RPCServiceGrpc.RPCServiceImplBase {
 
             NodeManager.node.setLeaderId(0);
             NodeManager.node.setVotedFor(candidateId);
-            NodeManager.printNodeLog();
+            NodeManager.printNodeInfo();
             return true;
         }
 

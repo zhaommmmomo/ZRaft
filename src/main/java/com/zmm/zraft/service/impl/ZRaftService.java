@@ -10,7 +10,6 @@ import com.zmm.zraft.service.IZRaftService;
 
 import java.util.List;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 基本方法类
@@ -104,6 +103,8 @@ public class ZRaftService implements IZRaftService {
                 future.addListener(new AppendFutureListener(),
                         Executors.newFixedThreadPool(1));
             } else {
+                // 通过心跳同步日志条目
+                // 如果有需要发送的日志条目并且不是因为Client调用RPC造成的并且这是第一次发送
                 if (n != 0 && AppendFutureListener.getEntriesCount(i) == 0 &&
                         !NodeManager.map.containsKey(future)) {
                     NodeManager.map.put(future, i);
@@ -115,10 +116,13 @@ public class ZRaftService implements IZRaftService {
                                     int index = NodeManager.map.get(future);
                                     int nextIndex = NodeManager.nextIndex.get(index);
                                     if (future.get().getSuccess()) {
+                                        // 如果节点同步成功，将该节点的nextIndex修改
                                         int x = nextIndex + n;
                                         NodeManager.printLog("节点" + index + "的nextIndex: " + x);
                                         NodeManager.nextIndex.set(index, nextIndex + n);
                                     } else {
+                                        // 如果同步失败，则可能是节点不存在nextIndex开始的日志条目
+                                        // 将nextIndex--，然后重新发送
                                         NodeManager.printLog("节点" + index + "的nextIndex: " + (nextIndex - 1));
                                         NodeManager.nextIndex.set(index, Math.max(nextIndex - 1, 0));
                                     }
@@ -136,18 +140,6 @@ public class ZRaftService implements IZRaftService {
         // 开启返回
         if (type != 0) {
             AppendFutureListener.response();
-        }
-    }
-
-    @Override
-    public synchronized void sendHeart(AppendRequest appendRequest) {
-        if (rpcFutureMethod == null) {
-            throw new RuntimeException("rpcFutureMethod not init...");
-        }
-
-        int l = rpcFutureMethod.size();
-        for (RPCServiceGrpc.RPCServiceFutureStub futureStub : rpcFutureMethod) {
-            futureStub.appendEntries(appendRequest);
         }
     }
 
@@ -183,9 +175,8 @@ public class ZRaftService implements IZRaftService {
 
     @Override
     public synchronized void levelDown(AppendRequest request) {
-        Node.NodeState state = NodeManager.node.getNodeState();
         NodeManager.printLog("Level down......");
-        // 关闭心跳计时器
+        // 关闭心跳计时器（只有Leader才会关闭成功）
         NodeManager.heartListener.stop();
 
         // 更新节点任期信息
@@ -195,7 +186,7 @@ public class ZRaftService implements IZRaftService {
         // 如果计时器已经开启了，会重置上一个心跳时间和等待时间
         NodeManager.electionListener.start();
 
-        NodeManager.printNodeLog();
+        NodeManager.printNodeInfo();
     }
 
     /**
@@ -210,7 +201,7 @@ public class ZRaftService implements IZRaftService {
         NodeManager.node.setVotedFor(leaderId);
         NodeManager.node.setNodeState(Node.NodeState.FOLLOWER);
 
-        NodeManager.printNodeLog();
+        NodeManager.printNodeInfo();
     }
 
     /**
@@ -224,7 +215,7 @@ public class ZRaftService implements IZRaftService {
         NodeManager.node.setLeaderId(0);
         NodeManager.node.setVotedFor(request.getCandidateId());
 
-        NodeManager.printNodeLog();
+        NodeManager.printNodeInfo();
     }
 
     /**
