@@ -19,7 +19,7 @@ public class AppendFutureListener implements Runnable{
     /**
      * 用于记录是哪一个节点返回的future
      */
-    private static List<ListenableFuture<ZRaftResponse>> futureList = new CopyOnWriteArrayList<>();
+    private final static List<ListenableFuture<ZRaftResponse>> futureList = new CopyOnWriteArrayList<>();
 
     /**
      * 用于记录集群中append成功的节点数
@@ -50,12 +50,13 @@ public class AppendFutureListener implements Runnable{
     @Override
     public void run() {
         synchronized (futureList) {
-            int l = futureList.size();
-            for (int i = 0; i < l; i++) {
-                ListenableFuture<ZRaftResponse> future;
-                if (futureList.get(i) != null &&
+            try {
+                int l = futureList.size();
+                for (int i = 0; i < l; i++) {
+                    ListenableFuture<ZRaftResponse> future;
+                    if (futureList.get(i) != null &&
                         (future = futureList.get(i)).isDone()) {
-                    try {
+
                         ZRaftResponse zRaftResponse = future.get();
                         int nextIndex = NodeManager.nextIndex.get(i);
                         if (zRaftResponse.getSuccess()) {
@@ -76,10 +77,10 @@ public class AppendFutureListener implements Runnable{
                         }
                         entriesCount.set(i, 0);
                         futureList.set(i, null);
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
@@ -125,7 +126,6 @@ public class AppendFutureListener implements Runnable{
         flag = false;
         count = 1;
         futureList.clear();
-        futureList = new CopyOnWriteArrayList<>();
     }
 
     /**

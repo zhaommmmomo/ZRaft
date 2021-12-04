@@ -56,25 +56,25 @@ public class ElectionListener implements Runnable{
 
     @Override
     public void run() {
-        while (!stop) {
-            try {
+        try {
+            while (!stop) {
                 TimeUnit.MILLISECONDS.sleep(10);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+                // 节点刚启动的时候不会进入该逻辑里面
+                // 会有一个等待超时时间
+                // 如果当前时间 - 上一个心跳包接收到的时间 > 当前超时时间
+                long t = System.currentTimeMillis();
+                if (t - preHeartTime >= currentTimeOut) {
+                    // 随机生成超时时间
+                    createRandomTime();
+                    // 修改上次心跳的时间，重置等待超时器
+                    // 如果不修改的话，会一直sendVoteRequest()
+                    updatePreHeartTime(t + currentTimeOut * 2);
+                    // 触发开始选举逻辑
+                    zRaftService.toBeCandidate();
+                }
             }
-            // 节点刚启动的时候不会进入该逻辑里面
-            // 会有一个等待超时时间
-            // 如果当前时间 - 上一个心跳包接收到的时间 > 当前超时时间
-            long t = System.currentTimeMillis();
-            if (t - preHeartTime >= currentTimeOut) {
-                // 随机生成超时时间
-                createRandomTime();
-                // 修改上次心跳的时间，重置等待超时器
-                // 如果不修改的话，会一直sendVoteRequest()
-                updatePreHeartTime(t + currentTimeOut * 2);
-                // 触发开始选举逻辑
-                zRaftService.toBeCandidate();
-            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

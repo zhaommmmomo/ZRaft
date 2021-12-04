@@ -33,38 +33,38 @@ public class VoteFutureListener implements Runnable{
     @Override
     public void run() {
         synchronized (queue) {
-            int l = queue.size();
-            for (int i = 0; i < l; i++) {
-                ListenableFuture<ZRaftResponse> future = queue.get(i);
-                if (future.isDone()){
-                    try {
-                        ZRaftResponse zRaftResponse = future.get();
-                        if (zRaftResponse.getSuccess()) {
-                            voteCount++;
-                            if (voteCount > NodeManager.allNodeCounts / 2) {
+            try {
+                int l = queue.size();
+                for (int i = 0; i < l; i++) {
+                    ListenableFuture<ZRaftResponse> future = queue.get(i);
+                    if (future.isDone()){
+                            ZRaftResponse zRaftResponse = future.get();
+                            if (zRaftResponse.getSuccess()) {
+                                voteCount++;
+                                if (voteCount > NodeManager.allNodeCounts / 2) {
 
-                                NodeManager.printLog("voteCount: " + voteCount);
-                                NodeManager.printLog("allNodeCounts: " + NodeManager.allNodeCounts);
+                                    NodeManager.printLog("voteCount: " + voteCount);
+                                    NodeManager.printLog("allNodeCounts: " + NodeManager.allNodeCounts);
 
-                                // 清空FutureTask数据，确保里面没有因宕机每响应的Future
-                                voteCount = 0;
-                                queue.clear();
+                                    // 清空FutureTask数据，确保里面没有因宕机每响应的Future
+                                    voteCount = 0;
+                                    queue.clear();
 
-                                // 如果当前的票数超过了一半，触发Leader逻辑
-                                // 变为Leader，发送心跳包，设置不会出现等待超时
-                                zRaftService.toBeLeader();
-                                NodeManager.printNodeInfo();
-                                break;
+                                    // 如果当前的票数超过了一半，触发Leader逻辑
+                                    // 变为Leader，发送心跳包，设置不会出现等待超时
+                                    zRaftService.toBeLeader();
+                                    NodeManager.printNodeInfo();
+                                    break;
+                                }
+
                             }
-
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        queue.remove(future);
+                        voteCount = 0;
+                        break;
                     }
-                    queue.remove(future);
-                    voteCount = 0;
-                    break;
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

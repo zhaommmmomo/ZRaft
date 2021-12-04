@@ -35,16 +35,15 @@ public class HeartListener implements Runnable{
 
     @Override
     public void run() {
-        while (!stop) {
-            // 发送心跳包
-            zRaftService.sendAppendEntries(0);
-
-            // sleep
-            try {
+        try {
+            while (!stop) {
+                // 发送心跳包
+                zRaftService.sendAppendEntries(0);
+                // sleep
                 TimeUnit.MILLISECONDS.sleep(TIMEOUT);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
